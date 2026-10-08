@@ -1,4 +1,4 @@
-import sett
+from sett import SettingsManager
 import customtkinter as ctk
 
 ctk.set_appearance_mode("System")  # Tryb: "System", "Dark" lub "Light"
@@ -9,6 +9,13 @@ class ModigModbusApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
+        # Konfiguracja ustawień
+        self.sett_man = SettingsManager()
+        self.sett_man.init_file()
+        restore_theme = self.sett_man.sett_conf.get("theme", "System")
+        ctk.set_appearance_mode(restore_theme)
+        ctk.set_default_color_theme("blue")
+
         # Konfiguracja głównego okna
         self.title("MODIG MODBUS APP")
         self.geometry("900x550")
@@ -17,9 +24,6 @@ class ModigModbusApp(ctk.CTk):
         # Konfiguracja siatki (Grid) dla całego okna
         self.grid_columnconfigure(1, weight=1)  # Główny panel rozciąga się w poziomie
         self.grid_rowconfigure(0, weight=1)  # Oba panele rozciągają się w pionie
-
-        # Konfiguracja ustawień
-        sett.setti.init_file()
 
         # --- ZMIENNE STANU ---
         self.active_module = "Karta Przekaźnikowa 1"
