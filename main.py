@@ -1,4 +1,5 @@
 from sett import SettingsManager
+from serial_bus import SerialManager
 import customtkinter as ctk
 
 ctk.set_appearance_mode("System")  # Tryb: "System", "Dark" lub "Light"
@@ -7,11 +8,13 @@ ctk.set_default_color_theme("blue")  # Motyw kolorystyczny: "blue", "green", "da
 #---------------------------
 class ModigModbusApp(ctk.CTk):
     def __init__(self):
-        super().__init__()
 
         # Konfiguracja ustawień
         self.sett_man = SettingsManager()
         self.sett_man.init_file()
+
+        #self.app_bus = SerialManager()
+
         restore_theme = self.sett_man.sett_conf.get("theme", "System")
         ctk.set_appearance_mode(restore_theme)
         ctk.set_default_color_theme("blue")
@@ -41,7 +44,25 @@ class ModigModbusApp(ctk.CTk):
 
         # Tytuł sekcji
         self.logo_label = ctk.CTkLabel(self.left_panel, text="MODULES", font=ctk.CTkFont(size=18, weight="bold"))
-        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 20))
+        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+
+        # --- SEKCJA PORTU COM ---
+        #self.com_label = ctk.CTkLabel(self.left_panel, text="Serial port:", font=ctk.CTkFont(size=12))
+        #self.com_label.grid(row=1, column=0, padx=20, pady=(5, 0), sticky="w")
+
+        # Pobieramy listę dostępnych portów (tylko nazwy, np. ['COM3', 'COM4'])
+        '''self.app_bus.list_get()
+        available_ports = [port.device for port in self.app_bus.p_list]
+
+        # Jeśli nie ma portów, dajemy informację zastępczą, żeby menu nie było puste
+        if not available_ports:
+            available_ports = ["Brak portów"]
+        # Tworzymy rozwijane menu (OptionMenu) do wyboru portu COM
+        self.com_optionmenu = ctk.CTkOptionMenu(self.left_panel, values=available_ports, command=self.port_selected)
+        self.com_optionmenu.grid(row=2, column=0, padx=20, pady=(0, 20), sticky="ew")
+        self.com_optionmenu.set(available_ports[0])  # Ustawiamy pierwszy wykryty port jako aktywny
+        # --------------------------------
+        '''
 
         # Przyciski wyboru kart (jako przykłady)
         self.btn_module1 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 1", fg_color="transparent",
@@ -57,12 +78,17 @@ class ModigModbusApp(ctk.CTk):
         # Opcje na dole panelu (Wybór motywu)
         self.theme_label = ctk.CTkLabel(self.left_panel, text="Motyw:", anchor="w")
         self.theme_label.grid(row=5, column=0, padx=20, pady=(10, 0), sticky="ew")
-        self.theme_optionmenu = ctk.CTkOptionMenu(self.left_panel, values=["Dark", "Light", "System"],
-                                                  command=self.theme_switch)
+        self.theme_optionmenu = ctk.CTkOptionMenu(self.left_panel, values=["Dark", "Light", "System"], command=self.theme_switch)
         self.theme_optionmenu.grid(row=6, column=0, padx=20, pady=(0, 20), sticky="ew")
         self.theme_optionmenu.set("System")
         restore_theme = self.sett_man.sett_conf.get("theme", "System")
         self.theme_optionmenu.set(restore_theme)
+
+    def port_selected(self, wybrany_port):
+        """Wywoływane po wybraniu portu z listy rozwijanej."""
+        print(f"Wybrano port komunikacyjny: {wybrany_port}")
+        # W przyszłości: tutaj przypiszemy ten port do naszego połączenia Modbus
+
 
     def main_panel_init(self):
         """Tworzy główny obszar z nagłówkiem i kafelkami przekaźników."""
