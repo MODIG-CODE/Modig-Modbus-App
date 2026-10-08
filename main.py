@@ -8,12 +8,12 @@ ctk.set_default_color_theme("blue")  # Motyw kolorystyczny: "blue", "green", "da
 #---------------------------
 class ModigModbusApp(ctk.CTk):
     def __init__(self):
+        super().__init__()
 
         # Konfiguracja ustawień
         self.sett_man = SettingsManager()
         self.sett_man.init_file()
-
-        #self.app_bus = SerialManager()
+        self.app_bus = SerialManager()
 
         restore_theme = self.sett_man.sett_conf.get("theme", "System")
         ctk.set_appearance_mode(restore_theme)
@@ -40,18 +40,18 @@ class ModigModbusApp(ctk.CTk):
         """Tworzy boczny panel nawigacyjny do wyboru kart."""
         self.left_panel = ctk.CTkFrame(self, width=220, corner_radius=0)
         self.left_panel.grid(row=0, column=0, sticky="nsew")
-        self.left_panel.grid_rowconfigure(4, weight=1)  # Popycha dolne elementy w dół
+        self.left_panel.grid_rowconfigure(5, weight=1)  # Popycha dolne elementy w dół
 
         # Tytuł sekcji
         self.logo_label = ctk.CTkLabel(self.left_panel, text="MODULES", font=ctk.CTkFont(size=18, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
         # --- SEKCJA PORTU COM ---
-        #self.com_label = ctk.CTkLabel(self.left_panel, text="Serial port:", font=ctk.CTkFont(size=12))
-        #self.com_label.grid(row=1, column=0, padx=20, pady=(5, 0), sticky="w")
+        self.com_label = ctk.CTkLabel(self.left_panel, text="Serial port:", font=ctk.CTkFont(size=12))
+        self.com_label.grid(row=1, column=0, padx=20, pady=(5, 0), sticky="w")
 
         # Pobieramy listę dostępnych portów (tylko nazwy, np. ['COM3', 'COM4'])
-        '''self.app_bus.list_get()
+        self.app_bus.list_get()
         available_ports = [port.device for port in self.app_bus.p_list]
 
         # Jeśli nie ma portów, dajemy informację zastępczą, żeby menu nie było puste
@@ -62,24 +62,24 @@ class ModigModbusApp(ctk.CTk):
         self.com_optionmenu.grid(row=2, column=0, padx=20, pady=(0, 20), sticky="ew")
         self.com_optionmenu.set(available_ports[0])  # Ustawiamy pierwszy wykryty port jako aktywny
         # --------------------------------
-        '''
+
 
         # Przyciski wyboru kart (jako przykłady)
         self.btn_module1 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 1", fg_color="transparent",
                                         text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w",
                                         command=lambda: self.module_switch("Karta Przekaźnikowa 1"))
-        self.btn_module1.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
+        self.btn_module1.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
 
         self.btn_module2 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 2", fg_color="transparent",
                                         text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w",
                                         command=lambda: self.module_switch("Karta Przekaźnikowa 2"))
-        self.btn_module2.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
+        self.btn_module2.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
 
         # Opcje na dole panelu (Wybór motywu)
         self.theme_label = ctk.CTkLabel(self.left_panel, text="Motyw:", anchor="w")
-        self.theme_label.grid(row=5, column=0, padx=20, pady=(10, 0), sticky="ew")
+        self.theme_label.grid(row=6, column=0, padx=20, pady=(10, 0), sticky="ew")
         self.theme_optionmenu = ctk.CTkOptionMenu(self.left_panel, values=["Dark", "Light", "System"], command=self.theme_switch)
-        self.theme_optionmenu.grid(row=6, column=0, padx=20, pady=(0, 20), sticky="ew")
+        self.theme_optionmenu.grid(row=7, column=0, padx=20, pady=(0, 20), sticky="ew")
         self.theme_optionmenu.set("System")
         restore_theme = self.sett_man.sett_conf.get("theme", "System")
         self.theme_optionmenu.set(restore_theme)
