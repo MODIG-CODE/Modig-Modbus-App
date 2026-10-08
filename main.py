@@ -50,45 +50,63 @@ class ModigModbusApp(ctk.CTk):
         self.com_label = ctk.CTkLabel(self.left_panel, text="Serial port:", font=ctk.CTkFont(size=12))
         self.com_label.grid(row=1, column=0, padx=20, pady=(5, 0), sticky="w")
 
-        # Pobieramy listę dostępnych portów (tylko nazwy, np. ['COM3', 'COM4'])
-        self.app_bus.list_get()
-        available_ports = [port.device for port in self.app_bus.p_list]
-
-        # Jeśli nie ma portów, dajemy informację zastępczą, żeby menu nie było puste
-        if not available_ports:
-            available_ports = ["Brak portów"]
         # Tworzymy rozwijane menu (OptionMenu) do wyboru portu COM
-        self.com_optionmenu = ctk.CTkOptionMenu(self.left_panel, values=available_ports, command=self.port_selected)
-        self.com_optionmenu.grid(row=2, column=0, padx=20, pady=(0, 20), sticky="ew")
-        self.com_optionmenu.set(available_ports[0])  # Ustawiamy pierwszy wykryty port jako aktywny
-        # --------------------------------
+        self.com_optionmenu = ctk.CTkOptionMenu(self.left_panel, values=["Empty..."], command=self.port_selected)
+        self.com_optionmenu.grid(row=2, column=0, padx=20, pady=(0, 5), sticky="ew")
 
+        # Nowy, mniejszy przycisk do odświeżania listy portów
+        self.btn_refresh = ctk.CTkButton(
+            self.left_panel,
+            text="Refresh",
+            height=24,  # Mniejsza wysokość, by przycisk był zgrabny
+            font=ctk.CTkFont(size=11),  # Nieco mniejsza czcionka
+            fg_color=("gray80", "gray25"),  # Delikatniejszy kolor dopasowany do jasnego/ciemnego motywu
+            text_color=("gray10", "gray90"),
+            hover_color=("gray70", "gray35"),
+            command=self.scan_ports  # Podpięcie naszej nowej metody
+        )
+        self.btn_refresh.grid(row=3, column=0, padx=20, pady=(0, 20), sticky="ew")
+        # --------------------------------
 
         # Przyciski wyboru kart (jako przykłady)
         self.btn_module1 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 1", fg_color="transparent",
                                         text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w",
                                         command=lambda: self.module_switch("Karta Przekaźnikowa 1"))
-        self.btn_module1.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
+        self.btn_module1.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
 
         self.btn_module2 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 2", fg_color="transparent",
                                         text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w",
                                         command=lambda: self.module_switch("Karta Przekaźnikowa 2"))
-        self.btn_module2.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
+        self.btn_module2.grid(row=5, column=0, padx=20, pady=10, sticky="ew")
 
         # Opcje na dole panelu (Wybór motywu)
         self.theme_label = ctk.CTkLabel(self.left_panel, text="Motyw:", anchor="w")
-        self.theme_label.grid(row=6, column=0, padx=20, pady=(10, 0), sticky="ew")
+        self.theme_label.grid(row=7, column=0, padx=20, pady=(10, 0), sticky="ew")
         self.theme_optionmenu = ctk.CTkOptionMenu(self.left_panel, values=["Dark", "Light", "System"], command=self.theme_switch)
-        self.theme_optionmenu.grid(row=7, column=0, padx=20, pady=(0, 20), sticky="ew")
+        self.theme_optionmenu.grid(row=8, column=0, padx=20, pady=(0, 20), sticky="ew")
         self.theme_optionmenu.set("System")
         restore_theme = self.sett_man.sett_conf.get("theme", "System")
         self.theme_optionmenu.set(restore_theme)
+        self.scan_ports()
+
+    def scan_ports(self):
+        """Skanuje system w poszukiwaniu portów COM i aktualizuje listę w menu."""
+        # 1. Pobieramy aktualną listę portów z systemu
+        self.app_bus.list_get()
+        available_ports = [port.device for port in self.app_bus.p_list]
+
+        # Jeśli nie ma portów, dajemy informację zastępczą, żeby menu nie było puste
+        if not available_ports:
+            available_ports = ["Empty..."]
+
+        self.com_optionmenu.configure(values=available_ports)
+        self.com_optionmenu.set(available_ports[0])  # Ustawiamy pierwszy wykryty port jako aktywny
+        print(f"Serial ports refresh")
 
     def port_selected(self, wybrany_port):
         """Wywoływane po wybraniu portu z listy rozwijanej."""
-        print(f"Wybrano port komunikacyjny: {wybrany_port}")
+        print(f"Port selected: {wybrany_port}")
         # W przyszłości: tutaj przypiszemy ten port do naszego połączenia Modbus
-
 
     def main_panel_init(self):
         """Tworzy główny obszar z nagłówkiem i kafelkami przekaźników."""
