@@ -61,6 +61,8 @@ class ModigModbusApp(ctk.CTk):
                                                   command=self.theme_switch)
         self.theme_optionmenu.grid(row=6, column=0, padx=20, pady=(0, 20), sticky="ew")
         self.theme_optionmenu.set("System")
+        restore_theme = self.sett_man.sett_conf.get("theme", "System")
+        self.theme_optionmenu.set(restore_theme)
 
     def main_panel_init(self):
         """Tworzy główny obszar z nagłówkiem i kafelkami przekaźników."""
@@ -124,6 +126,7 @@ class ModigModbusApp(ctk.CTk):
     def theme_switch(self, new_theme):
         """Zmienia motyw kolorystyczny całej aplikacji w locie."""
         ctk.set_appearance_mode(new_theme)
+        self.sett_man.new_val("theme", new_theme)
 
 
 if __name__ == "__main__":

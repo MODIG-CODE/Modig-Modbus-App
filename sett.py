@@ -1,5 +1,6 @@
 import json
 import os
+from operator import truediv
 
 # Słownik z domyślnymi ustawieniami na wypadek, gdyby pliku jeszcze nie było
 DEF_SETT = {
@@ -17,7 +18,7 @@ class SettingsManager:
             print("Plik konfiguracyjny nie istnieje. Tworzę nowy...")
             try:
                 with open(self.file_name, "w", encoding="utf-8") as plik:
-                    json.dump(DEF_SETT, plik, indent=4)
+                    json.dump(DEF_SETT, plik, indent=4, ensure_ascii=False)
 
             except Exception as e:
                 print(f"Błąd tworzenia pliku, ustawiam domyślne")
@@ -34,5 +35,25 @@ class SettingsManager:
             print(f"Błąd podczas odczytu pliku, ustawiam domyślne")
             self.sett_conf = DEF_SETT
             return False
+
+    def save_file(self):
+        # Zapisujemy zaktualizowany słownik z powrotem do pliku
+        try:
+            with open(self.file_name, "w", encoding="utf-8") as plik:
+                json.dump(self.sett_conf, plik, indent=4, ensure_ascii=False)
+                print(f"Plik konfiguracyjny zaktualizowany poprawnie")
+            return True
+        except Exception as e:
+            print(f"Błąd zapisu pliku")
+            return False
+
+    def new_val(self, val_name, val_new):
+        if val_name in self.sett_conf:
+            self.sett_conf[val_name] = val_new
+            self.save_file()
+            return True
+        else:
+            return False
+
 
 #setti = SettingsManager()
