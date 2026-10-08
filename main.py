@@ -3,7 +3,7 @@ import customtkinter as ctk
 ctk.set_appearance_mode("System")  # Tryb: "System", "Dark" lub "Light"
 ctk.set_default_color_theme("blue")  # Motyw kolorystyczny: "blue", "green", "dark-blue"
 
-#------------------------
+#---------------------------
 class RelayControlApp(ctk.CTk):
     def __init__(self):
         super().__init__()
