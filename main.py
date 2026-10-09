@@ -5,6 +5,13 @@ import customtkinter as ctk
 ctk.set_appearance_mode("System")  # Tryb: "System", "Dark" lub "Light"
 ctk.set_default_color_theme("blue")  # Motyw kolorystyczny: "blue", "green", "dark-blue"
 
+DEF_LEFT_PANEL_L = "#FBE29D"
+DEF_LEFT_PANEL_D = "#4A3703"
+DEF_OPMENU_FG_L = "#4C92C3"
+DEF_OPMENU_FG_D = "#4C92C3"
+DEF_OPMENUBUTT_FG_L = "#3C749C"
+DEF_OPMENUBUTT_FG_D = "#3C749C"
+
 #---------------------------
 class ModigModbusApp(ctk.CTk):
     def __init__(self):
@@ -41,21 +48,26 @@ class ModigModbusApp(ctk.CTk):
 
     def left_panel_init(self):
         """Tworzy boczny panel nawigacyjny do wyboru kart."""
-        self.left_panel = ctk.CTkFrame(self, width=220, corner_radius=0)
+        self.left_panel = ctk.CTkFrame(self, width=220, corner_radius=0, fg_color=(DEF_LEFT_PANEL_L, DEF_LEFT_PANEL_D))
         self.left_panel.grid(row=0, column=0, sticky="nsew")
         self.left_panel.grid_rowconfigure(5, weight=1)  # Popycha dolne elementy w dół
 
-        # Tytuł sekcji
-        self.logo_label = ctk.CTkLabel(self.left_panel, text="MODULES", font=ctk.CTkFont(size=18, weight="bold"))
-        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
-
         # --- SEKCJA PORTU COM ---
-        self.com_label = ctk.CTkLabel(self.left_panel, text="Serial port:", font=ctk.CTkFont(size=12))
-        self.com_label.grid(row=1, column=0, padx=20, pady=(5, 0), sticky="w")
+        self.com_label = ctk.CTkLabel(self.left_panel, text="SERIAL PORT", font=ctk.CTkFont(size=16, weight="bold"))
+        self.com_label.grid(row=0, column=0, padx=20, pady=(5, 5), sticky="w")
 
         # Tworzymy rozwijane menu (OptionMenu) do wyboru portu COM
-        self.com_optionmenu = ctk.CTkOptionMenu(self.left_panel, values=["Empty..."], command=self.port_selected)
-        self.com_optionmenu.grid(row=2, column=0, padx=20, pady=(0, 5), sticky="ew")
+        self.com_optionmenu = ctk.CTkOptionMenu(
+            self.left_panel,
+            text_color=("gray10", "gray90"),
+            text_color_disabled=("gray10", "gray90"),
+            fg_color=(DEF_OPMENU_FG_L, DEF_OPMENU_FG_D),
+            button_color=(DEF_OPMENUBUTT_FG_L, DEF_OPMENUBUTT_FG_D),
+            hover=False,
+            state="normal",
+            values=["Empty..."],
+            command=self.port_selected)
+        self.com_optionmenu.grid(row=1, column=0, padx=20, pady=(0, 5), sticky="ew")
 
         # Nowy, mniejszy przycisk do odświeżania listy portów
         self.btn_refresh = ctk.CTkButton(
@@ -68,8 +80,11 @@ class ModigModbusApp(ctk.CTk):
             hover_color=("gray70", "gray35"),
             command=self.scan_ports  # Podpięcie naszej nowej metody
         )
-        self.btn_refresh.grid(row=3, column=0, padx=20, pady=(0, 20), sticky="ew")
+        self.btn_refresh.grid(row=2, column=0, padx=20, pady=(0, 20), sticky="ew")
         # --------------------------------
+        # Tytuł sekcji
+        self.logo_label = ctk.CTkLabel(self.left_panel, text="MODULES", font=ctk.CTkFont(size=16, weight="bold"))
+        self.logo_label.grid(row=3, column=0, padx=20, pady=(20, 5), sticky="w")
 
         # Przyciski wyboru kart (jako przykłady)
         self.btn_module1 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 1", fg_color="transparent",
@@ -83,9 +98,16 @@ class ModigModbusApp(ctk.CTk):
         self.btn_module2.grid(row=5, column=0, padx=20, pady=10, sticky="ew")
 
         # Opcje na dole panelu (Wybór motywu)
-        self.theme_label = ctk.CTkLabel(self.left_panel, text="Motyw:", anchor="w")
+        self.theme_label = ctk.CTkLabel(self.left_panel, text="Motyw:", anchor="w" )
         self.theme_label.grid(row=7, column=0, padx=20, pady=(10, 0), sticky="ew")
-        self.theme_optionmenu = ctk.CTkOptionMenu(self.left_panel, values=["Dark", "Light", "System"], command=self.theme_switch)
+        self.theme_optionmenu = ctk.CTkOptionMenu(
+            self.left_panel,
+            text_color=("gray10", "gray90"),
+            text_color_disabled=("gray10", "gray90"),
+            fg_color=(DEF_OPMENU_FG_L, DEF_OPMENU_FG_D),
+            button_color=(DEF_OPMENUBUTT_FG_L, DEF_OPMENUBUTT_FG_D),
+            values=["Dark", "Light", "System"],
+            command=self.theme_switch)
         self.theme_optionmenu.grid(row=8, column=0, padx=20, pady=(0, 20), sticky="ew")
         self.theme_optionmenu.set("System")
         restore_theme = self.sett_man.sett_conf.get("theme", "System")
@@ -93,17 +115,26 @@ class ModigModbusApp(ctk.CTk):
         self.scan_ports()
 
     def scan_ports(self):
-        """Skanuje system w poszukiwaniu portów COM i aktualizuje listę w menu."""
-        # 1. Pobieramy aktualną listę portów z systemu
+        if self.app_bus_status:
+            if self.app_bus.ser_close() is True:
+                print("Serial port closed")
+
+        self.app_bus_status = False
+        self.btn_refresh.configure(text="Refresh")
+
+        # Pobieramy aktualną listę portów z systemu
         self.app_bus.list_get()
         available_ports = [port.device for port in self.app_bus.p_list]
-
-        # Jeśli nie ma portów, dajemy informację zastępczą, żeby menu nie było puste
         if not available_ports:
             available_ports = ["Empty..."]
 
         self.com_optionmenu.configure(values=available_ports)
         self.com_optionmenu.set(available_ports[0])  # Ustawiamy pierwszy wykryty port jako aktywny
+        self.com_optionmenu.configure(
+            fg_color=[DEF_OPMENU_FG_L, DEF_OPMENU_FG_D],
+            button_color=[DEF_OPMENUBUTT_FG_L, DEF_OPMENUBUTT_FG_D],
+            state="normal"
+        )
         print(f"Serial ports refresh")
 
     def port_selected(self, wybrany_port):
@@ -111,8 +142,22 @@ class ModigModbusApp(ctk.CTk):
         self.app_bus_status = self.app_bus.try_open(wybrany_port)
         if self.app_bus_status:
             print(f"Port selected: {wybrany_port}, and ready")
+            # Sukces: zmieniamy kolory menu na zielone (obsługuje od razu Light i Dark mode)
+            # Format ["kolor_jasny", "kolor_ciemny"]
+            self.com_optionmenu.configure(
+                fg_color=["#4CC3B0", "#3CB3A0"],      # Zielony panel
+                button_color=["#4CC3B0", "#3CB3A0"],  # Ciemniejszy zielony przycisk strzałki
+                state="disabled"
+            )
+            self.btn_refresh.configure(text="CLOSE")
         else:
             print(f"Port selected: {wybrany_port}, and FAIL")
+            self.com_optionmenu.configure(
+                fg_color=["#ED3229", "#DD2219"],      # Czerwony panel
+                button_color=["#ED3229", "#DD2219"],  # Ciemniejszy czerwony przycisk strzałki
+                state="normal"
+            )
+            self.btn_refresh.configure(text="Refresh")
 
     def when_close_app(self):
         """Metoda wywoływana automatycznie w momencie zamykania programu."""
