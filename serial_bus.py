@@ -79,3 +79,12 @@ class SerialManager:
             except Exception as e:
                 pass
         return False
+
+    def mm_wr_bit(self, adr, val):
+        if self.ser.isOpen():
+            try:
+                self.mm.write_bit(adr, val)
+                return True
+            except Exception as e:
+                pass
+        return False

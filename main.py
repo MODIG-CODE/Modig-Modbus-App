@@ -1,3 +1,5 @@
+from statistics import variance
+
 from sett import SettingsManager
 from serial_bus import SerialManager
 import customtkinter as ctk
@@ -234,7 +236,11 @@ class ModigModbusApp(ctk.CTk):
         switch_new_state = switch.get()
         frame = self.outputs_grid_fr[output_index]
 
-        if self.app_bus.mm_wr_bit(output_index, switch_new_state):
+        result = False
+        if self.app_bus_status:
+            result = self.app_bus.mm_wr_bit(output_index, switch_new_state)
+
+        if result:
             # Aktualizacja tekstu obok przełącznika
             if switch_new_state == 1:
                 print(f"[{self.active_module}] Set output {output_index}")
@@ -245,8 +251,8 @@ class ModigModbusApp(ctk.CTk):
                 switch.configure(text="OFF")
                 frame.configure(fg_color=[DEF_GRIDPANELS_FG_L, DEF_GRIDPANELS_FG_D])
         else:
-            #switch.toggle()
             print(f"[{self.active_module}] Output {output_index} FAIL")
+            #switch.toggle()
 
     def theme_switch(self, new_theme):
         """Zmienia motyw kolorystyczny całej aplikacji w locie."""
