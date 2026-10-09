@@ -14,6 +14,7 @@ class ModigModbusApp(ctk.CTk):
         self.sett_man = SettingsManager()
         self.sett_man.init_file()
         self.app_bus = SerialManager()
+        self.app_bus_status = False
 
         restore_theme = self.sett_man.sett_conf.get("theme", "System")
         ctk.set_appearance_mode(restore_theme)
@@ -35,6 +36,8 @@ class ModigModbusApp(ctk.CTk):
         # --- TWORZENIE ELEMENTÓW INTERFEJSU ---
         self.left_panel_init()
         self.main_panel_init()
+
+        self.protocol("WM_DELETE_WINDOW", self.when_close_app)
 
     def left_panel_init(self):
         """Tworzy boczny panel nawigacyjny do wyboru kart."""
@@ -105,8 +108,21 @@ class ModigModbusApp(ctk.CTk):
 
     def port_selected(self, wybrany_port):
         """Wywoływane po wybraniu portu z listy rozwijanej."""
-        print(f"Port selected: {wybrany_port}")
-        # W przyszłości: tutaj przypiszemy ten port do naszego połączenia Modbus
+        self.app_bus_status = self.app_bus.try_open(wybrany_port)
+        if self.app_bus_status:
+            print(f"Port selected: {wybrany_port}, and ready")
+        else:
+            print(f"Port selected: {wybrany_port}, and FAIL")
+
+    def when_close_app(self):
+        """Metoda wywoływana automatycznie w momencie zamykania programu."""
+        print("Zamykanie aplikacji...")
+        if self.app_bus.ser_close() is True:
+            print("Serial port closed")
+        else:
+            print("Serial port FAIL")
+        # Ostateczne zamknięcie okna i zakończenie działania programu
+        self.destroy()
 
     def main_panel_init(self):
         """Tworzy główny obszar z nagłówkiem i kafelkami przekaźników."""
