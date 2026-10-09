@@ -1,6 +1,7 @@
 import serial
 import serial.tools.list_ports
 import time
+import minimalmodbus
 
 class SerialManager:
 
@@ -14,6 +15,8 @@ class SerialManager:
         stopbits=serial.STOPBITS_ONE, # 1 bit stopu
         timeout=1          # Maksymalny czas oczekiwania na odpowiedź (w sekundach)
     )
+
+    #mm = minimalmodbus.Instrument(ser, 1)
 
     def list_get(self):
         self.p_list = serial.tools.list_ports.comports()
@@ -48,6 +51,7 @@ class SerialManager:
         else:
             try:
                 self.ser.open()
+                self.mm = minimalmodbus.Instrument(self.ser, 1)
                 #print(f"Port {port_name} is ready")
                 return True
             except Exception as e:
@@ -65,4 +69,13 @@ class SerialManager:
                 except Exception as e:
                     pass
                     #print(f"Port {self.ser.port} close fail")
+        return False
+
+    def mm_wr_bit(self, adr, val):
+        if self.ser.isOpen():
+            try:
+                self.mm.write_bit(adr, val)
+                return True
+            except Exception as e:
+                pass
         return False

@@ -5,12 +5,17 @@ import customtkinter as ctk
 ctk.set_appearance_mode("System")  # Tryb: "System", "Dark" lub "Light"
 ctk.set_default_color_theme("blue")  # Motyw kolorystyczny: "blue", "green", "dark-blue"
 
-DEF_LEFT_PANEL_L = "#FBE29D"
-DEF_LEFT_PANEL_D = "#4A3703"
+DEF_LEFT_PANEL_L = "gray70"
+DEF_LEFT_PANEL_D = "gray30"
 DEF_OPMENU_FG_L = "#4C92C3"
 DEF_OPMENU_FG_D = "#4C92C3"
 DEF_OPMENUBUTT_FG_L = "#3C749C"
 DEF_OPMENUBUTT_FG_D = "#3C749C"
+
+DEF_GRIDPANELS_FG_L = "gray80"
+DEF_GRIDPANELS_FG_D = "gray20"
+DEF_GRIDPANELS_ACT_FG_L = "#9ddbcf"
+DEF_GRIDPANELS_ACT_FG_D = "#226056"
 
 #---------------------------
 class ModigModbusApp(ctk.CTk):
@@ -184,26 +189,36 @@ class ModigModbusApp(ctk.CTk):
         self.module_top_label.grid(row=0, column=0, columnspan=4, padx=10, pady=(10, 20), sticky="w")
 
         # Generowanie 8 kafelków (2 rzędy po 4 kafelki)
-        self.outputs_grid = {}
-        for idx in range(1, 9):
-            in_row = 1 if idx <= 4 else 2
+        self.outputs_grid_sw = {}
+        self.outputs_grid_fr = {}
+        for idx in range(1, 13):
+            #in_row = 1 if idx <= 4 else 2
+            in_row = ((idx - 1) // 4) + 1
             in_col = (idx - 1) % 4
 
             # Pojedynczy g_item jako CTkFrame
-            g_item = ctk.CTkFrame(self.main_panel, corner_radius=12)
+            g_item = ctk.CTkFrame(
+                self.main_panel,
+                fg_color=(DEF_GRIDPANELS_FG_L, DEF_GRIDPANELS_FG_D),
+                corner_radius=12)
             g_item.grid(row=in_row, column=in_col, padx=10, pady=10, sticky="nsew")
             g_item.grid_columnconfigure(0, weight=1)
+            self.outputs_grid_fr[idx] = g_item
 
             # Etykieta wewnątrz kafelka
             label = ctk.CTkLabel(g_item, text=f"Output {idx}", font=ctk.CTkFont(size=14, weight="bold"))
             label.grid(row=0, column=0, padx=15, pady=(15, 5), sticky="w")
 
             # Nowoczesny przełącznik (Switch) zamiast klasycznego przycisku
-            switch = ctk.CTkSwitch(g_item, text="OFF", command=lambda i=idx: self.outputs_switch(i))
+            switch = ctk.CTkSwitch(
+                g_item,
+                text="OFF",
+                font=ctk.CTkFont(size=14, weight="bold"),
+                command=lambda i=idx: self.outputs_switch(i))
             switch.grid(row=1, column=0, padx=15, pady=(5, 15), sticky="w")
 
             # Zapisujemy referencję do przełącznika, by móc zmieniać jego stan z poziomu kodu
-            self.outputs_grid[idx] = switch
+            self.outputs_grid_sw[idx] = switch
 
     # --- LOGIKA DIALOGU I AKCJI ---
     def module_switch(self, module_name):
@@ -215,18 +230,23 @@ class ModigModbusApp(ctk.CTk):
 
     def outputs_switch(self, output_index):
         """Wywoływane przy zmianie pozycji przełącznika."""
-        switch = self.outputs_grid[output_index]
-        switch_new_state = switch.get() == 1  # True jeśli włączony, False jeśli wyłączony
+        switch = self.outputs_grid_sw[output_index]
+        switch_new_state = switch.get()
+        frame = self.outputs_grid_fr[output_index]
 
-        # Aktualizacja tekstu obok przełącznika
-        if switch_new_state:
-            switch.configure(text="ON", progress_color="green")
-            print(f"[{self.active_module}] Set output {output_index}")
-            # TODO: Tutaj dodasz wysłanie ramki Modbus RTU: Włącz (np. write_bit(numer, 1))
+        if self.app_bus.mm_wr_bit(output_index, switch_new_state):
+            # Aktualizacja tekstu obok przełącznika
+            if switch_new_state == 1:
+                print(f"[{self.active_module}] Set output {output_index}")
+                switch.configure(text="ON", progress_color="green")
+                frame.configure(fg_color=[DEF_GRIDPANELS_ACT_FG_L, DEF_GRIDPANELS_ACT_FG_D])
+            else:
+                print(f"[{self.active_module}] Reset output {output_index}")
+                switch.configure(text="OFF")
+                frame.configure(fg_color=[DEF_GRIDPANELS_FG_L, DEF_GRIDPANELS_FG_D])
         else:
-            switch.configure(text="OFF")
-            print(f"[{self.active_module}] Reset output {output_index}")
-            # TODO: Tutaj dodasz wysłanie ramki Modbus RTU: Wyłącz (np. write_bit(numer, 0))
+            #switch.toggle()
+            print(f"[{self.active_module}] Output {output_index} FAIL")
 
     def theme_switch(self, new_theme):
         """Zmienia motyw kolorystyczny całej aplikacji w locie."""
