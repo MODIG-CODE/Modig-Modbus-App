@@ -37,11 +37,12 @@ class ModigModbusApp(ctk.CTk):
         # Konfiguracja głównego okna
         self.title("MODIG MODBUS APP")
         self.geometry("900x550")
-        self.minsize(800, 450)
+        self.minsize(800, 600)
 
         # Konfiguracja siatki (Grid) dla całego okna
         self.grid_columnconfigure(1, weight=1)  # Główny panel rozciąga się w poziomie
-        self.grid_rowconfigure(0, weight=1)  # Oba panele rozciągają się w pionie
+        self.grid_rowconfigure(0, weight=1)  # Górna część (panele) zajmuje większość miejsca
+        self.grid_rowconfigure(1, weight=0)  # Dolna część (diagnostyka) zajmuje mniej miejsca
 
         # --- ZMIENNE STANU ---
         self.active_module = "Karta Przekaźnikowa 1"
@@ -50,6 +51,7 @@ class ModigModbusApp(ctk.CTk):
         # --- TWORZENIE ELEMENTÓW INTERFEJSU ---
         self.left_panel_init()
         self.main_panel_init()
+        self.frames_panel_init()
 
         self.protocol("WM_DELETE_WINDOW", self.when_close_app)
 
@@ -159,6 +161,23 @@ class ModigModbusApp(ctk.CTk):
         """Wywoływane po wybraniu portu z listy rozwijanej."""
         self.app_bus_status = self.app_bus.try_open(wybrany_port)
         if self.app_bus_status:
+            my_mm = self.app_bus.serial_get()
+            oryg_write = my_mm.serial.write
+            oryg_read = my_mm.serial.read
+
+            def new_write(data):
+                self.frame_log(1, data)
+                return oryg_write(data)
+
+            def new_read(size=1):
+                data = oryg_read(size)
+                if data:
+                    self.frame_log(0, data)
+                return data
+
+            my_mm.serial.write = new_write
+            my_mm.serial.read = new_read
+
             print(f"Port selected: {wybrany_port}, and ready")
             # Sukces: zmieniamy kolory menu na zielone (obsługuje od razu Light i Dark mode)
             # Format ["kolor_jasny", "kolor_ciemny"]
@@ -270,6 +289,49 @@ class ModigModbusApp(ctk.CTk):
         """Zmienia motyw kolorystyczny całej aplikacji w locie."""
         ctk.set_appearance_mode(new_theme)
         self.sett_man.new_val("theme", new_theme)
+
+    def frames_panel_init(self):
+        """Tworzy dolne okno tekstowe do podglądu ramek HEX."""
+        # Kontener na dole okna (rozciąga się na kolumnę boczną i główną: columnspan=2)
+        #self.panel_diag = ctk.CTkFrame(self, corner_radius=0, height=60)
+        #self.panel_diag.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=10, pady=(10, 10))
+        #self.panel_diag.grid_columnconfigure(0, weight=1)
+        #self.panel_diag.grid_rowconfigure(1, weight=1)
+
+        # Nagłówek panelu
+        #self.diag_label = ctk.CTkLabel(self.panel_diag, text="📊 Monitor Ramek Modbus (HEX)",
+        #                               font=ctk.CTkFont(size=12, weight="bold"))
+        #self.diag_label.grid(row=0, column=0, padx=2, pady=2, sticky="w")
+
+        # Pole tekstowe (zablokowane do edycji dla użytkownika: state="disabled")
+        self.diag_text = ctk.CTkTextbox(self, height=60, font=ctk.CTkFont(family="Courier", size=12))
+        self.diag_text.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
+        self.diag_text.configure(state="disabled")
+
+        self.diag_text._textbox.tag_config("tx", foreground="#1E88E5")  # Ładny niebieski dla nadawania
+        self.diag_text._textbox.tag_config("rx", foreground="#43A047")  # Żywy zielony dla odbierania
+
+    def frame_log(self, kierunek, ramka_bytes):
+        """Dodaje sformatowaną ramkę HEX do panelu na dole."""
+        # Konwersja surowych bajtów na czytelny format HEX z odstępami, np. "01 05 00 00 FF 00"
+        hex_string = " ".join(f"{b:02X}" for b in ramka_bytes)
+        prefix = "[TX]" if kierunek == 1 else "[RX]"
+        kolor = "GREEN" if kierunek == 1 else "BLUE"  # Symulacja, w Textbox można też formatować kolory
+
+        if kierunek == 1:
+            prefix = "[TX]"
+            tag_name = "tx"
+        else:
+            prefix = "[RX]"
+            tag_name = "rx"
+
+        tekst_logu = f"{prefix}: {hex_string}\n"
+
+        # Odblokowanie pola, dopisanie tekstu na końcu i ponowne zablokowanie
+        self.diag_text.configure(state="normal")
+        self.diag_text.insert("end", tekst_logu, tag_name)
+        self.diag_text.see("end")  # Automatyczne przewijanie do najnowszej linii
+        self.diag_text.configure(state="disabled")
 
 
 if __name__ == "__main__":

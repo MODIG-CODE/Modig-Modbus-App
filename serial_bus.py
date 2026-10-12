@@ -59,6 +59,9 @@ class SerialManager:
                 #print(f"Port {port_name} is not available")
         return False
 
+    def serial_get(self):
+        return self.mm
+
     def ser_close(self):
         if self.ser.port is not None:
             if self.ser.isOpen():
@@ -69,15 +72,6 @@ class SerialManager:
                 except Exception as e:
                     pass
                     #print(f"Port {self.ser.port} close fail")
-        return False
-
-    def mm_wr_bit(self, adr, val):
-        if self.ser.isOpen():
-            try:
-                self.mm.write_bit(adr, val)
-                return True
-            except Exception as e:
-                pass
         return False
 
     def mm_wr_bit(self, adr, val):
