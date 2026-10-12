@@ -7,6 +7,8 @@ import customtkinter as ctk
 ctk.set_appearance_mode("System")  # Tryb: "System", "Dark" lub "Light"
 ctk.set_default_color_theme("blue")  # Motyw kolorystyczny: "blue", "green", "dark-blue"
 
+DEF_VERSION = "1.2 beta"
+
 DEF_LEFT_PANEL_L = "gray70"
 DEF_LEFT_PANEL_D = "gray30"
 DEF_OPMENU_FG_L = "#84b3d6"
@@ -22,6 +24,9 @@ DEF_GRIDPANELS_ACT_FG_D = "#226056"
 DEF_MODULE_SEL_L = "#fbd68d"
 DEF_MODULE_SEL_D = "#b78806"
 
+DEF_IN_OUT_LABELS_L = "#ED3229"
+DEF_IN_OUT_LABELS_D = "#ED3229"
+
 DEF_FRAMEM_TX = "#4C92C3"
 DEF_FRAMEM_RX = "#4CC3B0"
 
@@ -36,12 +41,11 @@ class ModigModbusApp(ctk.CTk):
         self.app_bus = SerialManager()
         self.app_bus_status = False
 
-        restore_theme = self.sett_man.sett_conf.get("theme", "System")
-        ctk.set_appearance_mode(restore_theme)
+        ctk.set_appearance_mode(self.sett_man.sett_conf.get("theme", "System"))
         ctk.set_default_color_theme("blue")
 
         # Konfiguracja głównego okna
-        self.title("MODIG MODBUS APP")
+        self.title("MODIG MODBUS APP ver " + DEF_VERSION)
         self.geometry("900x550")
         self.minsize(800, 600)
 
@@ -50,14 +54,13 @@ class ModigModbusApp(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)  # Górna część (panele) zajmuje większość miejsca
         self.grid_rowconfigure(1, weight=0)  # Dolna część (diagnostyka) zajmuje mniej miejsca
 
-        # --- ZMIENNE STANU ---
-        self.active_module = "Karta Przekaźnikowa 1"
-        self.outputs_state = {i: False for i in range(1, 9)}  # Symulacja stanu 8 przekaźników
+        self.active_module = 1
 
         # --- TWORZENIE ELEMENTÓW INTERFEJSU ---
         self.left_panel_init()
         self.main_panel_init()
-        self.frames_panel_init()
+        self.mod_panel_builder(self.sett_man.sett_conf.get("def_mod", 1))
+        self.bus_frames_panel_init()
 
         self.protocol("WM_DELETE_WINDOW", self.when_close_app)
 
@@ -108,7 +111,7 @@ class ModigModbusApp(ctk.CTk):
                 fg_color=(DEF_MODULE_SEL_L, DEF_MODULE_SEL_D),
                 text_color=("gray10", "gray90"),
                 hover_color=(DEF_MODULE_SEL_D, DEF_MODULE_SEL_L), anchor="w",
-                command=lambda: self.module_switch(idx))
+                command=lambda i=idx: self.module_switch(i))
             g_item.grid(row=(idx + 3), column=0, padx=20, pady=20, sticky="ew")
             self.modules_list[idx] = g_item
 
@@ -126,8 +129,7 @@ class ModigModbusApp(ctk.CTk):
             command=self.theme_switch)
         self.theme_optionmenu.grid(row=9, column=0, padx=20, pady=(0, 20), sticky="ew")
         self.theme_optionmenu.set("System")
-        restore_theme = self.sett_man.sett_conf.get("theme", "System")
-        self.theme_optionmenu.set(restore_theme)
+        self.theme_optionmenu.set(self.sett_man.sett_conf.get("theme", "System"))
         self.scan_ports()
 
     def scan_ports(self):
@@ -207,61 +209,110 @@ class ModigModbusApp(ctk.CTk):
         self.main_panel = ctk.CTkFrame(self, fg_color="transparent")
         self.main_panel.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
 
-        # Konfiguracja siatki dla kafelków (np. 4 kolumny)
-        for i in range(4):
-            self.main_panel.grid_columnconfigure(i, weight=1, uniform="g_item")
+    def mod_panel_builder(self, mod_index):
+        """Czyści panel i buduje go na nowo dla konkretnego modułu."""
+        self.active_module = mod_index
 
-        # Nagłówek informujący o wybranej karcie
-        self.module_top_label = ctk.CTkLabel(self.main_panel, text=self.active_module,
-                                           font=ctk.CTkFont(size=24, weight="bold"))
-        self.module_top_label.grid(row=0, column=0, columnspan=4, padx=10, pady=(10, 20), sticky="w")
+        # 1. CZYSZCZENIE: Pobieramy wszystkie dzieci kontenera i je niszczymy (usuwamy z pamięci)
+        for widget in self.main_panel.winfo_children():
+            widget.destroy()
 
-        # Generowanie 8 kafelków (2 rzędy po 4 kafelki)
-        self.outputs_grid_sw = {}
-        self.outputs_grid_fr = {}
-        for idx in range(1, 13):
-            #in_row = 1 if idx <= 4 else 2
-            in_row = ((idx - 1) // 4) + 1
-            in_col = (idx - 1) % 4
+        # Pobieramy parametry techniczne klikniętego modułu
+        mod_params = self.sett_man.sett_conf.get(f"mod{self.active_module}")
+        outs = mod_params.get("outputs", 4)
+        ins = mod_params.get("inputs", 4)
 
-            # Pojedynczy g_item jako CTkFrame
-            g_item = ctk.CTkFrame(
-                self.main_panel,
-                fg_color=(DEF_GRIDPANELS_FG_L, DEF_GRIDPANELS_FG_D),
-                corner_radius=12)
-            g_item.grid(row=in_row, column=in_col, padx=10, pady=10, sticky="nsew")
-            g_item.grid_columnconfigure(0, weight=1)
-            self.outputs_grid_fr[idx] = g_item
+        # 2. BUDOWANIE NAGŁÓWKA
+        self.mod_panel_label = ctk.CTkLabel(
+            self.main_panel,
+            text=f"{mod_params.get("type", "MD20001")} (Out: {outs}, In: {ins})",
+            font=ctk.CTkFont(size=20, weight="bold")
+        )
+        self.mod_panel_label.pack(anchor="w", pady=(0, 15))
 
-            # Etykieta wewnątrz kafelka
-            label = ctk.CTkLabel(g_item, text=f"Output {idx}", font=ctk.CTkFont(size=14, weight="bold"))
-            label.grid(row=0, column=0, padx=15, pady=(15, 5), sticky="w")
+        # 3. KONTENER NA PRZEŁĄCZNIKI (WYJŚCIA)
+        if outs > 0:
+            outputs_label = ctk.CTkLabel(self.main_panel, text="OUTPUTS (Relays):",
+                                         text_color=(DEF_IN_OUT_LABELS_L, DEF_IN_OUT_LABELS_D),
+                                         font=ctk.CTkFont(size=14, weight="bold"))
+            outputs_label.pack(anchor="w", pady=(5, 5))
 
-            # Nowoczesny przełącznik (Switch) zamiast klasycznego przycisku
-            switch = ctk.CTkSwitch(
-                g_item,
-                text="OFF",
-                switch_width=60, switch_height=25,
-                font=ctk.CTkFont(size=14, weight="bold"),
-                command=lambda i=idx: self.outputs_switch(i))
-            switch.grid(row=1, column=0, padx=15, pady=(5, 15), sticky="w")
+            outputs_frame = ctk.CTkFrame(self.main_panel, fg_color="transparent")
+            outputs_frame.pack(fill="x", pady=(0, 15))
 
-            # Zapisujemy referencję do przełącznika, by móc zmieniać jego stan z poziomu kodu
-            self.outputs_grid_sw[idx] = switch
+            # Konfigurujemy siatkę na 4 kolumny wewnątrz sekcji wyjść
+            for i in range(4):
+                outputs_frame.grid_columnconfigure(i, weight=1, uniform="col")
+
+            self.outputs_list = {}
+            self.oframe_list = {}
+            for idx in range(1, outs + 1):
+                row = (idx - 1) // 4
+                col = (idx - 1) % 4
+
+                o_item = ctk.CTkFrame(outputs_frame, corner_radius=10)
+                o_item.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
+                self.oframe_list[idx] = o_item
+
+                switch = ctk.CTkSwitch(o_item, text="OFF", command=lambda i=idx: self.outputs_switch(i))
+                switch.pack(padx=20, pady=20, anchor="w")
+
+                label_out = ctk.CTkLabel(o_item, text=f"Out {idx}", font=ctk.CTkFont(size=12, weight="bold"))
+                #label_out.pack(padx=10, pady=(10, 2), anchor="w")
+                label_out.place(relx=0.5, rely=0.5, anchor="w", x=20)  # Przesunięcie tekstu obok diody
+
+                self.outputs_list[idx] = switch
+
+        # 4. KONTENER NA KONTROLKI (WEJŚCIA cyfrowe)
+        if ins > 0:
+            inputs_label = ctk.CTkLabel(self.main_panel, text="INPUTS:",
+                                        text_color=(DEF_IN_OUT_LABELS_L, DEF_IN_OUT_LABELS_D),
+                                        font=ctk.CTkFont(size=14, weight="bold"))
+            inputs_label.pack(anchor="w", pady=(5, 5))
+
+            inputs_frame = ctk.CTkFrame(self.main_panel, fg_color="transparent")
+            inputs_frame.pack(fill="x")
+
+            for i in range(4):
+                inputs_frame.grid_columnconfigure(i, weight=1, uniform="col")
+
+            self.inputs_list = {}
+            for idx in range(1, ins + 1):
+                row = (idx - 1) // 4
+                col = (idx - 1) % 4
+
+                i_item = ctk.CTkFrame(inputs_frame, corner_radius=10)
+                i_item.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
+
+                # Kontrolka wejścia jako mała okrągła dioda (zwykły Label stylizowany na kółko)
+                # Domyślnie szara (brak sygnału), po odczycie stanu z Modbus zmienimy na czerwoną/zieloną
+                dioda = ctk.CTkLabel(i_item,
+                    text="● IDLE", text_color="gray",
+                    font=ctk.CTkFont(size=14, weight="bold")
+                )
+                dioda.pack(padx=15, pady=12, anchor="w")
+
+                # Dodatkowa tekstowa informacja wewnątrz kafelka
+                label_in = ctk.CTkLabel(i_item, text=f"Input {idx}", font=ctk.CTkFont(size=12, weight="bold"))
+                label_in.place(relx=0.5, rely=0.5, anchor="w", x=10)  # Przesunięcie tekstu obok diody
+
+                self.inputs_list[idx] = dioda
+
 
     # --- LOGIKA DIALOGU I AKCJI ---
-    def module_switch(self, module_name):
+    def module_switch(self, mod_index):
         """Wywoływane po kliknięciu karty w bocznym panelu."""
-        self.active_module = module_name
-        self.module_top_label.configure(text=module_name)
-        print(f"Module: {module_name}")
+        self.active_module = mod_index
+        self.mod_panel_builder(self.active_module)
+        #self.module_top_label.configure(text=module_name)
+        print(f"Switch Mod: {self.active_module}")
         # TODO: Tutaj dodasz w przyszłości odczyt aktualnego stanu przekaźników przez Modbus dla nowej karty
 
     def outputs_switch(self, output_index):
         """Wywoływane przy zmianie pozycji przełącznika."""
-        switch = self.outputs_grid_sw[output_index]
+        switch = self.outputs_list[output_index]
         switch_new_state = switch.get()
-        frame = self.outputs_grid_fr[output_index]
+        frame = self.oframe_list[output_index]
 
         result = False
         if self.app_bus_status:
@@ -286,19 +337,8 @@ class ModigModbusApp(ctk.CTk):
         ctk.set_appearance_mode(new_theme)
         self.sett_man.new_val("theme", new_theme)
 
-    def frames_panel_init(self):
+    def bus_frames_panel_init(self):
         """Tworzy dolne okno tekstowe do podglądu ramek HEX."""
-        # Kontener na dole okna (rozciąga się na kolumnę boczną i główną: columnspan=2)
-        #self.panel_diag = ctk.CTkFrame(self, corner_radius=0, height=60)
-        #self.panel_diag.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=10, pady=(10, 10))
-        #self.panel_diag.grid_columnconfigure(0, weight=1)
-        #self.panel_diag.grid_rowconfigure(1, weight=1)
-
-        # Nagłówek panelu
-        #self.diag_label = ctk.CTkLabel(self.panel_diag, text="📊 Monitor Ramek Modbus (HEX)",
-        #                               font=ctk.CTkFont(size=12, weight="bold"))
-        #self.diag_label.grid(row=0, column=0, padx=2, pady=2, sticky="w")
-
         # Pole tekstowe (zablokowane do edycji dla użytkownika: state="disabled")
         self.diag_text = ctk.CTkTextbox(self, height=60, font=ctk.CTkFont(family="Courier", size=12))
         self.diag_text.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
@@ -311,9 +351,6 @@ class ModigModbusApp(ctk.CTk):
         """Dodaje sformatowaną ramkę HEX do panelu na dole."""
         # Konwersja surowych bajtów na czytelny format HEX z odstępami, np. "01 05 00 00 FF 00"
         hex_string = " ".join(f"{b:02X}" for b in ramka_bytes)
-        prefix = "[TX]" if kierunek == 1 else "[RX]"
-        kolor = "GREEN" if kierunek == 1 else "BLUE"  # Symulacja, w Textbox można też formatować kolory
-
         if kierunek == 1:
             prefix = "[TX]"
             tag_name = "tx"

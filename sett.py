@@ -5,15 +5,31 @@ from operator import truediv
 # Słownik z domyślnymi ustawieniami na wypadek, gdyby pliku jeszcze nie było
 DEF_SETT = {
     "theme": "System",
-    "def_module": 1,
-    "mod_type1": "MD20001",
-    "mod_adr1": 1,
-    "mod_type2": "MD20002",
-    "mod_adr2": 2,
-    "mod_type3": "MD20003",
-    "mod_adr3": 3,
-    "mod_type4": "MD20004",
-    "mod_adr4": 4
+    "def_mod": 1,
+    "mod1":{
+        "type": "MD20001",
+        "adr": 1,
+        "outputs": 12,
+        "inputs": 0
+    },
+    "mod2": {
+        "type": "MD20002",
+        "adr": 2,
+        "outputs": 16,
+        "inputs": 0
+    },
+    "mod3": {
+        "type": "MD20003",
+        "adr": 3,
+        "outputs": 12,
+        "inputs": 8
+    },
+    "mod4": {
+        "type": "MD20004",
+        "adr": 4,
+        "outputs": 8,
+        "inputs": 12
+    }
 }
 
 class SettingsManager:
