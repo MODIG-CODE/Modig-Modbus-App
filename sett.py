@@ -5,7 +5,15 @@ from operator import truediv
 # Słownik z domyślnymi ustawieniami na wypadek, gdyby pliku jeszcze nie było
 DEF_SETT = {
     "theme": "System",
-    "default_module": "Karta Przekaźnikowa 1"
+    "def_module": 1,
+    "mod_type1": "MD20001",
+    "mod_adr1": 1,
+    "mod_type2": "MD20002",
+    "mod_adr2": 2,
+    "mod_type3": "MD20003",
+    "mod_adr3": 3,
+    "mod_type4": "MD20004",
+    "mod_adr4": 4
 }
 
 class SettingsManager:
@@ -56,4 +64,3 @@ class SettingsManager:
             return False
 
 
-#setti = SettingsManager()

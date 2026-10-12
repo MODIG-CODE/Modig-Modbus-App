@@ -9,7 +9,7 @@ ctk.set_default_color_theme("blue")  # Motyw kolorystyczny: "blue", "green", "da
 
 DEF_LEFT_PANEL_L = "gray70"
 DEF_LEFT_PANEL_D = "gray30"
-DEF_OPMENU_FG_L = "#4C92C3"
+DEF_OPMENU_FG_L = "#84b3d6"
 DEF_OPMENU_FG_D = "#4C92C3"
 DEF_OPMENUBUTT_FG_L = "#3C749C"
 DEF_OPMENUBUTT_FG_D = "#3C749C"
@@ -18,6 +18,12 @@ DEF_GRIDPANELS_FG_L = "gray80"
 DEF_GRIDPANELS_FG_D = "gray20"
 DEF_GRIDPANELS_ACT_FG_L = "#9ddbcf"
 DEF_GRIDPANELS_ACT_FG_D = "#226056"
+
+DEF_MODULE_SEL_L = "#fbd68d"
+DEF_MODULE_SEL_D = "#b78806"
+
+DEF_FRAMEM_TX = "#4C92C3"
+DEF_FRAMEM_RX = "#4CC3B0"
 
 #---------------------------
 class ModigModbusApp(ctk.CTk):
@@ -72,7 +78,6 @@ class ModigModbusApp(ctk.CTk):
             text_color_disabled=("gray10", "gray90"),
             fg_color=(DEF_OPMENU_FG_L, DEF_OPMENU_FG_D),
             button_color=(DEF_OPMENUBUTT_FG_L, DEF_OPMENUBUTT_FG_D),
-            hover=False,
             state="normal",
             values=["Empty..."],
             command=self.port_selected)
@@ -84,37 +89,28 @@ class ModigModbusApp(ctk.CTk):
             text="Refresh",
             height=24,  # Mniejsza wysokość, by przycisk był zgrabny
             font=ctk.CTkFont(size=11),  # Nieco mniejsza czcionka
-            fg_color=("gray80", "gray25"),  # Delikatniejszy kolor dopasowany do jasnego/ciemnego motywu
+            fg_color=(DEF_MODULE_SEL_L, DEF_MODULE_SEL_D),  # Delikatniejszy kolor dopasowany do jasnego/ciemnego motywu
             text_color=("gray10", "gray90"),
-            hover_color=("gray70", "gray35"),
-            command=self.scan_ports  # Podpięcie naszej nowej metody
-        )
+            hover_color=(DEF_MODULE_SEL_D, DEF_MODULE_SEL_L),
+            command=self.scan_ports)  # Podpięcie naszej nowej metody
         self.btn_refresh.grid(row=2, column=0, padx=20, pady=(0, 20), sticky="ew")
+
         # --------------------------------
         # Tytuł sekcji
         self.logo_label = ctk.CTkLabel(self.left_panel, text="MODULES", font=ctk.CTkFont(size=16, weight="bold"))
         self.logo_label.grid(row=3, column=0, padx=20, pady=(10, 5), sticky="w")
 
         # Przyciski wyboru kart (jako przykłady)
-        self.btn_module1 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 1", fg_color="transparent",
-                                        text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w",
-                                        command=lambda: self.module_switch("Karta Przekaźnikowa 1"))
-        self.btn_module1.grid(row=4, column=0, padx=20, pady=20, sticky="ew")
-
-        self.btn_module2 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 2", fg_color="transparent",
-                                        text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w",
-                                        command=lambda: self.module_switch("Karta Przekaźnikowa 2"))
-        self.btn_module2.grid(row=5, column=0, padx=20, pady=20, sticky="ew")
-
-        self.btn_module3 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 3", fg_color="transparent",
-                                        text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w",
-                                        command=lambda: self.module_switch("Karta Przekaźnikowa 3"))
-        self.btn_module3.grid(row=6, column=0, padx=20, pady=20, sticky="ew")
-
-        self.btn_module4 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 4", fg_color="transparent",
-                                        text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w",
-                                        command=lambda: self.module_switch("Karta Przekaźnikowa 4"))
-        self.btn_module4.grid(row=7, column=0, padx=20, pady=20, sticky="ew")
+        self.modules_list = {}
+        for idx in range(1, 5):
+            # Przyciski wyboru kart (jako przykłady)
+            g_item = ctk.CTkButton(self.left_panel, text=f"Modbus Device {idx}",
+                fg_color=(DEF_MODULE_SEL_L, DEF_MODULE_SEL_D),
+                text_color=("gray10", "gray90"),
+                hover_color=(DEF_MODULE_SEL_D, DEF_MODULE_SEL_L), anchor="w",
+                command=lambda: self.module_switch(idx))
+            g_item.grid(row=(idx + 3), column=0, padx=20, pady=20, sticky="ew")
+            self.modules_list[idx] = g_item
 
         #---------------------------------------------------
         # Opcje na dole panelu (Wybór motywu)
@@ -183,7 +179,7 @@ class ModigModbusApp(ctk.CTk):
             # Format ["kolor_jasny", "kolor_ciemny"]
             self.com_optionmenu.configure(
                 fg_color=["#4CC3B0", "#3CB3A0"],      # Zielony panel
-                button_color=["#4CC3B0", "#3CB3A0"],  # Ciemniejszy zielony przycisk strzałki
+                button_color=["#4CC3B0", "#3CB3A0"],
                 state="disabled"
             )
             self.btn_refresh.configure(text="CLOSE")
@@ -191,7 +187,7 @@ class ModigModbusApp(ctk.CTk):
             print(f"Port selected: {wybrany_port}, and FAIL")
             self.com_optionmenu.configure(
                 fg_color=["#ED3229", "#DD2219"],      # Czerwony panel
-                button_color=["#ED3229", "#DD2219"],  # Ciemniejszy czerwony przycisk strzałki
+                button_color=["#ED3229", "#DD2219"],
                 state="normal"
             )
             self.btn_refresh.configure(text="Refresh")
@@ -308,8 +304,8 @@ class ModigModbusApp(ctk.CTk):
         self.diag_text.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
         self.diag_text.configure(state="disabled")
 
-        self.diag_text._textbox.tag_config("tx", foreground="#1E88E5")  # Ładny niebieski dla nadawania
-        self.diag_text._textbox.tag_config("rx", foreground="#43A047")  # Żywy zielony dla odbierania
+        self.diag_text._textbox.tag_config("tx", foreground=DEF_FRAMEM_TX)  # Ładny niebieski dla nadawania
+        self.diag_text._textbox.tag_config("rx", foreground=DEF_FRAMEM_RX)  # Żywy zielony dla odbierania
 
     def frame_log(self, kierunek, ramka_bytes):
         """Dodaje sformatowaną ramkę HEX do panelu na dole."""
