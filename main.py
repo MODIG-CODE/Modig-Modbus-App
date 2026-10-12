@@ -57,7 +57,7 @@ class ModigModbusApp(ctk.CTk):
         """Tworzy boczny panel nawigacyjny do wyboru kart."""
         self.left_panel = ctk.CTkFrame(self, width=220, corner_radius=0, fg_color=(DEF_LEFT_PANEL_L, DEF_LEFT_PANEL_D))
         self.left_panel.grid(row=0, column=0, sticky="nsew")
-        self.left_panel.grid_rowconfigure(5, weight=1)  # Popycha dolne elementy w dół
+        #self.left_panel.grid_rowconfigure(3, weight=1)  # Popycha dolne elementy w dół
 
         # --- SEKCJA PORTU COM ---
         self.com_label = ctk.CTkLabel(self.left_panel, text="SERIAL PORT", font=ctk.CTkFont(size=16, weight="bold"))
@@ -91,22 +91,33 @@ class ModigModbusApp(ctk.CTk):
         # --------------------------------
         # Tytuł sekcji
         self.logo_label = ctk.CTkLabel(self.left_panel, text="MODULES", font=ctk.CTkFont(size=16, weight="bold"))
-        self.logo_label.grid(row=3, column=0, padx=20, pady=(20, 5), sticky="w")
+        self.logo_label.grid(row=3, column=0, padx=20, pady=(10, 5), sticky="w")
 
         # Przyciski wyboru kart (jako przykłady)
         self.btn_module1 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 1", fg_color="transparent",
                                         text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w",
                                         command=lambda: self.module_switch("Karta Przekaźnikowa 1"))
-        self.btn_module1.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
+        self.btn_module1.grid(row=4, column=0, padx=20, pady=20, sticky="ew")
 
         self.btn_module2 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 2", fg_color="transparent",
                                         text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w",
                                         command=lambda: self.module_switch("Karta Przekaźnikowa 2"))
-        self.btn_module2.grid(row=5, column=0, padx=20, pady=10, sticky="ew")
+        self.btn_module2.grid(row=5, column=0, padx=20, pady=20, sticky="ew")
 
+        self.btn_module3 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 3", fg_color="transparent",
+                                        text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w",
+                                        command=lambda: self.module_switch("Karta Przekaźnikowa 3"))
+        self.btn_module3.grid(row=6, column=0, padx=20, pady=20, sticky="ew")
+
+        self.btn_module4 = ctk.CTkButton(self.left_panel, text="Karta Modbus ID: 4", fg_color="transparent",
+                                        text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"), anchor="w",
+                                        command=lambda: self.module_switch("Karta Przekaźnikowa 4"))
+        self.btn_module4.grid(row=7, column=0, padx=20, pady=20, sticky="ew")
+
+        #---------------------------------------------------
         # Opcje na dole panelu (Wybór motywu)
-        self.theme_label = ctk.CTkLabel(self.left_panel, text="Motyw:", anchor="w" )
-        self.theme_label.grid(row=7, column=0, padx=20, pady=(10, 0), sticky="ew")
+        self.theme_label = ctk.CTkLabel(self.left_panel, text="THEME", font=ctk.CTkFont(size=16, weight="bold"), anchor="w" )
+        self.theme_label.grid(row=8, column=0, padx=20, pady=(20, 0), sticky="ew")
         self.theme_optionmenu = ctk.CTkOptionMenu(
             self.left_panel,
             text_color=("gray10", "gray90"),
@@ -115,7 +126,7 @@ class ModigModbusApp(ctk.CTk):
             button_color=(DEF_OPMENUBUTT_FG_L, DEF_OPMENUBUTT_FG_D),
             values=["Dark", "Light", "System"],
             command=self.theme_switch)
-        self.theme_optionmenu.grid(row=8, column=0, padx=20, pady=(0, 20), sticky="ew")
+        self.theme_optionmenu.grid(row=9, column=0, padx=20, pady=(0, 20), sticky="ew")
         self.theme_optionmenu.set("System")
         restore_theme = self.sett_man.sett_conf.get("theme", "System")
         self.theme_optionmenu.set(restore_theme)
@@ -215,6 +226,7 @@ class ModigModbusApp(ctk.CTk):
             switch = ctk.CTkSwitch(
                 g_item,
                 text="OFF",
+                switch_width=60, switch_height=25,
                 font=ctk.CTkFont(size=14, weight="bold"),
                 command=lambda i=idx: self.outputs_switch(i))
             switch.grid(row=1, column=0, padx=15, pady=(5, 15), sticky="w")
