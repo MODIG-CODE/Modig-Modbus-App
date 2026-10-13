@@ -79,4 +79,20 @@ class SettingsManager:
         else:
             return False
 
+    def get_theme(self):
+        return self.sett_conf.get("theme", "System")
 
+    def get_act_mod(self):
+        return self.sett_conf.get("def_mod", 1)
+
+    def get_mod_outputs(self, mod_num):
+        mod_conf = self.sett_conf.get(f"mod{mod_num}", {"outputs": 4})
+        return mod_conf.get("outputs", 4)
+
+    def get_mod_inputs(self, mod_num):
+        mod_conf = self.sett_conf.get(f"mod{mod_num}", {"inputs": 4})
+        return mod_conf.get("inputs", 4)
+
+    def get_mod_type(self, mod_num):
+        mod_conf = self.sett_conf.get(f"mod{mod_num}", {"type": "Other"})
+        return mod_conf.get("type", "Other")
