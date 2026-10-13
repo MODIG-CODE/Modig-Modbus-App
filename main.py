@@ -18,18 +18,18 @@ DEF_OPMENU_FG_D = "#4C92C3"
 DEF_OPMENUBUTT_FG_L = "#3C749C"
 DEF_OPMENUBUTT_FG_D = "#3C749C"
 
-DEF_GRIDPANELS_FG_L = "gray80"
-DEF_GRIDPANELS_FG_D = "gray20"
-DEF_GRIDPANELS_ACT_FG_L = "#9db8ce"
-DEF_GRIDPANELS_ACT_FG_D = "#3C749C"
+DEF_OGRIDPANELS_FG_L = "gray80"
+DEF_OGRIDPANELS_FG_D = "gray20"
+DEF_OGRIDPANELS_ACT_FG_L = "#fbd68d"
+DEF_OGRIDPANELS_ACT_FG_D = "#b78806"
 
 DEF_IGRIDPANELS_FG_L = "gray80"
 DEF_IGRIDPANELS_FG_D = "gray20"
 DEF_IGRIDPANELS_ACT_FG_L = "#9ddbcf"
 DEF_IGRIDPANELS_ACT_FG_D = "#226056"
 
-DEF_MODULE_SEL_L = "#fbd68d"
-DEF_MODULE_SEL_D = "#b78806"
+DEF_MODULE_SEL_L = "#9db8ce"
+DEF_MODULE_SEL_D = "#3C749C"
 
 DEF_IN_OUT_LABELS_L = "#ED3229"
 DEF_IN_OUT_LABELS_D = "#ED3229"
@@ -48,8 +48,7 @@ class ModigModbusApp(ctk.CTk):
 
         self.app_bus_status = False
         self.app_bus = SerialManager()
-        self.mfunc = ModbusFunctions()
-        self.modbus_lock = threading.Lock()
+        self.mfunc = ModbusFunctions(self)
 
         self.outputs_list = {}
         self.oframe_list = {}
@@ -78,7 +77,7 @@ class ModigModbusApp(ctk.CTk):
 
         self.protocol("WM_DELETE_WINDOW", self.when_close_app)
 
-        self.mfunc.start_functions(self)
+        self.mfunc.start_functions(self.app_bus)
 
     def left_panel_init(self):
         """Tworzy boczny panel nawigacyjny do wyboru kart."""
@@ -123,7 +122,12 @@ class ModigModbusApp(ctk.CTk):
         self.modules_list = {}
         for idx in range(1, 5):
             # Przyciski wyboru kart (jako przykłady)
-            g_item = ctk.CTkButton(self.left_panel, text=f"Modbus Device {idx}",
+            """name = (f"{self.sett_man.get_mod_type(idx)} "
+                    f"(A:{self.sett_man.get_mod_adr(idx)}"
+                    f" O:{self.sett_man.get_mod_outputs(idx)} "
+                    f" I:{self.sett_man.get_mod_inputs(idx)})")"""
+            name = f"{self.sett_man.get_mod_type(idx)} (Adr:{self.sett_man.get_mod_adr(idx)})"
+            g_item = ctk.CTkButton(self.left_panel, text=name,
                 fg_color=(DEF_MODULE_SEL_L, DEF_MODULE_SEL_D),
                 text_color=("gray10", "gray90"),
                 hover_color=(DEF_MODULE_SEL_D, DEF_MODULE_SEL_L), anchor="w",
@@ -278,7 +282,7 @@ class ModigModbusApp(ctk.CTk):
                 #label_out.pack(padx=10, pady=(10, 2), anchor="w")
                 label_out.place(relx=0.5, rely=0.5, anchor="w", x=20)  # Przesunięcie tekstu obok diody
 
-                self.outputs_switch_state(idx, 0)
+                self.outputs_switch_state((idx, 0))
 
         # 4. KONTENER NA KONTROLKI (WEJŚCIA cyfrowe)
         self.inputs_list = {}
@@ -328,29 +332,31 @@ class ModigModbusApp(ctk.CTk):
         switch = self.outputs_list[output_index]
         switch_new_state = switch.get()
 
-        result = False
+        #result = False
         if self.app_bus_status:
-            with self.modbus_lock:
-                result = self.app_bus.mm_wr_bit(output_index, switch_new_state)
+            self.mfunc.functions_wrb(1,output_index,switch_new_state)
+            #with self.mfunc.modbus_lock:
+            #    result = self.app_bus.mm_wr_bit(output_index, switch_new_state)
 
-        if result:
-            self.outputs_switch_state(output_index, switch_new_state)
+        """if result:
+            self.outputs_switch_state((output_index, switch_new_state))
             print(f"[{self.active_module}] Output {output_index} = {switch_new_state}")
 
         else:
-            self.outputs_switch_state(output_index, 0)
+            self.outputs_switch_state((output_index, 0))
             print(f"[{self.active_module}] Output {output_index} = FAIL")
             #switch.toggle()
+        """
 
-    def outputs_switch_state(self, index, state):
-        switch = self.outputs_list[index]
-        frame = self.oframe_list[index]
-        if state == 1:
+    def outputs_switch_state(self, index_state):
+        switch = self.outputs_list[index_state[0]]
+        frame = self.oframe_list[index_state[0]]
+        if index_state[1] == 1:
             switch.configure(text="ON")
-            frame.configure(fg_color=[DEF_GRIDPANELS_ACT_FG_L, DEF_GRIDPANELS_ACT_FG_D])
+            frame.configure(fg_color=[DEF_OGRIDPANELS_ACT_FG_L, DEF_OGRIDPANELS_ACT_FG_D])
         else:
             switch.configure(text="OFF")
-            frame.configure(fg_color=[DEF_GRIDPANELS_FG_L, DEF_GRIDPANELS_FG_D])
+            frame.configure(fg_color=[DEF_OGRIDPANELS_FG_L, DEF_OGRIDPANELS_FG_D])
 
     def input_indicators(self, read_states):
         """Aktualizuje kolory kontrolek na podstawie odczytanych stanów (wywoływane w wątku głównym)."""
@@ -367,7 +373,7 @@ class ModigModbusApp(ctk.CTk):
             iframe.configure(fg_color=[DEF_IGRIDPANELS_ACT_FG_L, DEF_IGRIDPANELS_ACT_FG_D])
         else:
             indicator.configure(text="● IDLE", text_color="gray")
-            iframe.configure(fg_color=[DEF_IGRIDPANELS_FG_L, DEF_GRIDPANELS_FG_D])
+            iframe.configure(fg_color=[DEF_IGRIDPANELS_FG_L, DEF_OGRIDPANELS_FG_D])
 
     def theme_switch(self, new_theme):
         """Zmienia motyw kolorystyczny całej aplikacji w locie."""

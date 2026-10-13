@@ -1,6 +1,7 @@
 import serial
 import serial.tools.list_ports
 import minimalmodbus
+import time
 
 class SerialManager:
 
@@ -79,5 +80,5 @@ class SerialManager:
                 self.mm.write_bit(adr, val)
                 return True
             except Exception as e:
-                pass
+                print(f"[Mbus Error]: {e}")
         return False

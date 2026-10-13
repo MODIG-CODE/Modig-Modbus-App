@@ -85,6 +85,10 @@ class SettingsManager:
     def get_act_mod(self):
         return self.sett_conf.get("def_mod", 1)
 
+    def get_mod_adr(self, mod_num):
+        mod_conf = self.sett_conf.get(f"mod{mod_num}", {"adr": 1})
+        return mod_conf.get("adr", 4)
+
     def get_mod_outputs(self, mod_num):
         mod_conf = self.sett_conf.get(f"mod{mod_num}", {"outputs": 4})
         return mod_conf.get("outputs", 4)
