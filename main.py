@@ -305,7 +305,7 @@ class ModigModbusApp(ctk.CTk):
                 self.iframes_list[idx] = i_item
 
                 # Kontrolka wejścia jako mała okrągła dioda (zwykły Label stylizowany na kółko)
-                indicator = ctk.CTkLabel(i_item, font=ctk.CTkFont(size=14, weight="bold"))
+                indicator = ctk.CTkLabel(i_item, font=ctk.CTkFont(size=18, weight="bold"))
                 indicator.pack(padx=15, pady=12, anchor="w")
                 self.inputs_list[idx] = indicator
                 self.input_indicator_state(idx, 0)

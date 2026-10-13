@@ -40,7 +40,7 @@ class ModbusFunctions:
                             )
 
                             # Wywołujemy bezpieczną aktualizację GUI z wątku głównego
-                            self.after(0, self.main_ref.input_indicators, in_states)
+                            self.main_ref.after(0, self.main_ref.input_indicators, in_states)
 
                     except Exception as e:
                         # Logujemy błąd, ale nie wywalamy aplikacji (np. chwilowy brak odpowiedzi)
