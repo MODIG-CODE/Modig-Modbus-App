@@ -1,8 +1,6 @@
 import json
 import os
-from operator import truediv
 
-# Słownik z domyślnymi ustawieniami na wypadek, gdyby pliku jeszcze nie było
 DEF_SETT = {
     "theme": "System",
     "def_mod": 1,
@@ -80,7 +78,7 @@ class SettingsManager:
             return False
 
     def get_theme(self):
-        return self.sett_conf.get("theme", "System")
+        return self.sett_conf.get("theme", "Dark")
 
     def get_act_mod(self):
         return self.sett_conf.get("def_mod", 1)

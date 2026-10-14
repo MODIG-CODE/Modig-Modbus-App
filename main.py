@@ -1,15 +1,16 @@
 import threading
 import time
-
+from dataclasses import dataclass
 from sett import SettingsManager
 from serial_bus import SerialManager
 from m_modbus import ModbusFunctions
+from m_modbus import ModbusCommand
 import customtkinter as ctk
 
 ctk.set_appearance_mode("System")  # Tryb: "System", "Dark" lub "Light"
 ctk.set_default_color_theme("blue")  # Motyw kolorystyczny: "blue", "green", "dark-blue"
 
-DEF_VERSION = "1.2 beta"
+DEF_VERSION = "1.3 beta"
 
 DEF_LEFT_PANEL_L = "gray70"
 DEF_LEFT_PANEL_D = "gray30"
@@ -38,6 +39,15 @@ DEF_FRAMEM_TX = "#4C92C3"
 DEF_FRAMEM_RX = "#4CC3B0"
 
 #---------------------------
+
+@dataclass
+class ModbusModule:
+    active: int
+    type: str
+    adr: int
+    outputs: int
+    inputs: int
+
 class ModigModbusApp(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -45,16 +55,17 @@ class ModigModbusApp(ctk.CTk):
         # Konfiguracja ustawień
         self.sett_man = SettingsManager()
         self.sett_man.init_file()
+        self.module = ModbusModule
+        self.module.active = self.sett_man.get_act_mod()
 
         self.app_bus_status = False
         self.app_bus = SerialManager()
         self.mfunc = ModbusFunctions(self)
 
         self.outputs_list = {}
-        self.oframe_list = {}
+        self.oframes_list = {}
         self.inputs_list = {}
         self.iframes_list = {}
-        self.active_module = self.sett_man.get_act_mod()
 
         ctk.set_appearance_mode(self.sett_man.get_theme())
         ctk.set_default_color_theme("blue")
@@ -72,13 +83,21 @@ class ModigModbusApp(ctk.CTk):
         # --- TWORZENIE ELEMENTÓW INTERFEJSU ---
         self.left_panel_init()
         self.main_panel_init()
-        self.mod_panel_builder(self.sett_man.get_act_mod())
+        self.module_switch(self.module.active)
+        self.mod_panel_builder()
         self.bus_frames_panel_init()
 
         self.protocol("WM_DELETE_WINDOW", self.when_close_app)
 
         self.mfunc.start_functions(self.app_bus)
 
+    def when_close_app(self):
+        print("Zamykanie aplikacji...")
+        self.mfunc.functions_close()
+        self.app_bus.ser_close()
+        self.destroy()
+
+    # -----------------------------------------------------------
     def left_panel_init(self):
         """Tworzy boczny panel nawigacyjny do wyboru kart."""
         self.left_panel = ctk.CTkFrame(self, width=220, corner_radius=0, fg_color=(DEF_LEFT_PANEL_L, DEF_LEFT_PANEL_D))
@@ -176,7 +195,6 @@ class ModigModbusApp(ctk.CTk):
         print(f"Serial ports refresh")
 
     def port_selected(self, wybrany_port):
-        """Wywoływane po wybraniu portu z listy rozwijanej."""
         if self.app_bus.try_open(wybrany_port):
             my_mm = self.app_bus.serial_get()
             oryg_write = my_mm.serial.write
@@ -215,50 +233,43 @@ class ModigModbusApp(ctk.CTk):
             )
             self.btn_refresh.configure(text="Refresh")
 
-    def when_close_app(self):
-        """Metoda wywoływana automatycznie w momencie zamykania programu."""
-        print("Zamykanie aplikacji...")
-        if self.app_bus.ser_close() is True:
-            print("Serial port closed")
-        else:
-            print("Serial port FAIL")
-        # Ostateczne zamknięcie okna i zakończenie działania programu
-        self.destroy()
+    def theme_switch(self, new_theme):
+        ctk.set_appearance_mode(new_theme)
+        self.sett_man.new_val("theme", new_theme)
 
+    # -----------------------------------------------------------
     def main_panel_init(self):
-        """Tworzy główny obszar z nagłówkiem i kafelkami przekaźników."""
         self.main_panel = ctk.CTkFrame(self, fg_color="transparent")
         self.main_panel.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
 
-    def mod_panel_builder(self, mod_index):
-        """Czyści panel i buduje go na nowo dla konkretnego modułu."""
-        self.active_module = mod_index
+    def module_switch(self, mod_index):
+        self.module.active = mod_index
+        self.module.type = self.sett_man.get_mod_type(self.module.active)
+        self.module.adr = self.sett_man.get_mod_adr(self.module.active)
+        self.module.outputs = self.sett_man.get_mod_outputs(self.module.active)
+        self.module.inputs = self.sett_man.get_mod_inputs(self.module.active)
+        print(f"Switch Mod: {self.module.active}")
+        self.mod_panel_builder()
 
-        # 1. CZYSZCZENIE: Pobieramy wszystkie dzieci kontenera i je niszczymy (usuwamy z pamięci)
+    def mod_panel_builder(self):
         for widget in self.main_panel.winfo_children():
             widget.destroy()
 
-        # Pobieramy parametry techniczne klikniętego modułu
-        outs = self.sett_man.get_mod_outputs(self.active_module)
-        ins = self.sett_man.get_mod_inputs(self.active_module)
-
-        # 2. BUDOWANIE NAGŁÓWKA
         self.mod_panel_label = ctk.CTkLabel(
             self.main_panel,
-            text=f"{self.sett_man.get_mod_type(self.active_module)} (Out: {outs}, In: {ins})",
+            text=f"{self.module.type} (Out: {self.module.outputs}, In: {self.module.inputs})",
             font=ctk.CTkFont(size=20, weight="bold")
         )
         self.mod_panel_label.pack(anchor="w", pady=(0, 15))
 
-        # 3. KONTENER NA PRZEŁĄCZNIKI (WYJŚCIA)
+        #---------------------------------------------------------
         self.outputs_list = {}
-        self.oframe_list = {}
-        if outs > 0:
+        self.oframes_list = {}
+        if self.module.outputs > 0:
             outputs_label = ctk.CTkLabel(self.main_panel, text="OUTPUTS (Relays):",
                                          text_color=(DEF_IN_OUT_LABELS_L, DEF_IN_OUT_LABELS_D),
                                          font=ctk.CTkFont(size=14, weight="bold"))
             outputs_label.pack(anchor="w", pady=(5, 5))
-
             outputs_frame = ctk.CTkFrame(self.main_panel, fg_color="transparent")
             outputs_frame.pack(fill="x", pady=(0, 15))
 
@@ -266,13 +277,13 @@ class ModigModbusApp(ctk.CTk):
             for i in range(4):
                 outputs_frame.grid_columnconfigure(i, weight=1, uniform="col")
 
-            for idx in range(1, outs + 1):
+            for idx in range(1, self.module.outputs + 1):
                 row = (idx - 1) // 4
                 col = (idx - 1) % 4
 
                 o_item = ctk.CTkFrame(outputs_frame, corner_radius=10)
                 o_item.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
-                self.oframe_list[idx] = o_item
+                self.oframes_list[idx] = o_item
 
                 switch = ctk.CTkSwitch(o_item, progress_color=("gray20", "gray80"), command=lambda i=idx: self.outputs_switch(i))
                 switch.pack(padx=15, pady=15, anchor="w")
@@ -284,10 +295,10 @@ class ModigModbusApp(ctk.CTk):
 
                 self.outputs_switch_state((idx, 0))
 
-        # 4. KONTENER NA KONTROLKI (WEJŚCIA cyfrowe)
+        #---------------------------------------------------------
         self.inputs_list = {}
         self.iframes_list = {}
-        if ins > 0:
+        if self.module.inputs > 0:
             inputs_label = ctk.CTkLabel(self.main_panel, text="INPUTS:",
                                         text_color=(DEF_IN_OUT_LABELS_L, DEF_IN_OUT_LABELS_D),
                                         font=ctk.CTkFont(size=14, weight="bold"))
@@ -299,7 +310,7 @@ class ModigModbusApp(ctk.CTk):
             for i in range(4):
                 inputs_frame.grid_columnconfigure(i, weight=1, uniform="col")
 
-            for idx in range(1, ins + 1):
+            for idx in range(1, self.module.inputs + 1):
                 row = (idx - 1) // 4
                 col = (idx - 1) % 4
 
@@ -308,24 +319,13 @@ class ModigModbusApp(ctk.CTk):
                 i_item.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
                 self.iframes_list[idx] = i_item
 
-                # Kontrolka wejścia jako mała okrągła dioda (zwykły Label stylizowany na kółko)
                 indicator = ctk.CTkLabel(i_item, font=ctk.CTkFont(size=18, weight="bold"))
                 indicator.pack(padx=15, pady=12, anchor="w")
                 self.inputs_list[idx] = indicator
                 self.input_indicator_state(idx, 0)
 
-                # Dodatkowa tekstowa informacja wewnątrz kafelka
                 label_in = ctk.CTkLabel(i_item, text=f"Input {idx}", font=ctk.CTkFont(size=12, weight="bold"))
                 label_in.place(relx=0.5, rely=0.5, anchor="w", x=10)  # Przesunięcie tekstu obok diody
-
-
-    # --- LOGIKA DIALOGU I AKCJI ---
-    def module_switch(self, mod_index):
-        """Wywoływane po kliknięciu karty w bocznym panelu."""
-        self.active_module = mod_index
-        self.mod_panel_builder(self.active_module)
-        #self.module_top_label.configure(text=module_name)
-        print(f"Switch Mod: {self.active_module}")
 
     def outputs_switch(self, output_index):
         """Wywoływane przy zmianie pozycji przełącznika."""
@@ -334,23 +334,12 @@ class ModigModbusApp(ctk.CTk):
 
         #result = False
         if self.app_bus_status:
-            self.mfunc.functions_wrb(1,output_index,switch_new_state)
-            #with self.mfunc.modbus_lock:
-            #    result = self.app_bus.mm_wr_bit(output_index, switch_new_state)
-
-        """if result:
-            self.outputs_switch_state((output_index, switch_new_state))
-            print(f"[{self.active_module}] Output {output_index} = {switch_new_state}")
-
-        else:
-            self.outputs_switch_state((output_index, 0))
-            print(f"[{self.active_module}] Output {output_index} = FAIL")
-            #switch.toggle()
-        """
+            command = ModbusCommand(action="wrb", adr=self.module.adr, reg=output_index, val=switch_new_state)
+            self.mfunc.functions_command(command)
 
     def outputs_switch_state(self, index_state):
         switch = self.outputs_list[index_state[0]]
-        frame = self.oframe_list[index_state[0]]
+        frame = self.oframes_list[index_state[0]]
         if index_state[1] == 1:
             switch.configure(text="ON")
             frame.configure(fg_color=[DEF_OGRIDPANELS_ACT_FG_L, DEF_OGRIDPANELS_ACT_FG_D])
@@ -359,7 +348,6 @@ class ModigModbusApp(ctk.CTk):
             frame.configure(fg_color=[DEF_OGRIDPANELS_FG_L, DEF_OGRIDPANELS_FG_D])
 
     def input_indicators(self, read_states):
-        """Aktualizuje kolory kontrolek na podstawie odczytanych stanów (wywoływane w wątku głównym)."""
         for idx, state in enumerate(read_states, start=1):
             if idx in self.inputs_list:
                 self.input_indicator_state(idx, state)
@@ -375,11 +363,7 @@ class ModigModbusApp(ctk.CTk):
             indicator.configure(text="● IDLE", text_color="gray")
             iframe.configure(fg_color=[DEF_IGRIDPANELS_FG_L, DEF_OGRIDPANELS_FG_D])
 
-    def theme_switch(self, new_theme):
-        """Zmienia motyw kolorystyczny całej aplikacji w locie."""
-        ctk.set_appearance_mode(new_theme)
-        self.sett_man.new_val("theme", new_theme)
-
+    # -----------------------------------------------------------
     def bus_frames_panel_init(self):
         """Tworzy dolne okno tekstowe do podglądu ramek HEX."""
         # Pole tekstowe (zablokowane do edycji dla użytkownika: state="disabled")
@@ -409,7 +393,7 @@ class ModigModbusApp(ctk.CTk):
         self.diag_text.see("end")  # Automatyczne przewijanie do najnowszej linii
         self.diag_text.configure(state="disabled")
 
-
+    # -----------------------------------------------------------
 if __name__ == "__main__":
     app = ModigModbusApp()
     app.mainloop()
