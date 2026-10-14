@@ -2,7 +2,7 @@ import json
 import os
 
 DEF_SETT = {
-    "theme": "System",
+    "theme": "Dark",
     "def_mod": 1,
     "mod1":{
         "type": "MD20001",
@@ -72,6 +72,14 @@ class SettingsManager:
     def new_val(self, val_name, val_new):
         if val_name in self.sett_conf:
             self.sett_conf[val_name] = val_new
+            self.save_file()
+            return True
+        else:
+            return False
+
+    def new_mod_val(self, mod_num, val_name, val_new):
+        if f"mod{mod_num}" in self.sett_conf:
+            self.sett_conf[f"mod{mod_num}"]["adr"] = val_new
             self.save_file()
             return True
         else:

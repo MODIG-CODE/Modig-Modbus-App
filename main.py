@@ -92,6 +92,8 @@ class ModigModbusApp(ctk.CTk):
         self.mfunc.start_functions(self.app_bus)
 
     def when_close_app(self):
+        if self.module.active is not self.sett_man.get_act_mod():
+            self.sett_man.new_val("def_mod", self.module.active)
         print("Zamykanie aplikacji...")
         self.mfunc.functions_close()
         self.app_bus.ser_close()
@@ -255,12 +257,40 @@ class ModigModbusApp(ctk.CTk):
         for widget in self.main_panel.winfo_children():
             widget.destroy()
 
-        self.mod_panel_label = ctk.CTkLabel(
-            self.main_panel,
+        #-----------------------------------------
+        mod_header = ctk.CTkFrame(self.main_panel, fg_color="transparent")
+        mod_header.pack(fill="x", pady=(0, 15))
+
+        self.mod_label = ctk.CTkLabel(
+            mod_header,
             text=f"{self.module.type} (Out: {self.module.outputs}, In: {self.module.inputs})",
             font=ctk.CTkFont(size=20, weight="bold")
         )
-        self.mod_panel_label.pack(anchor="w", pady=(0, 15))
+        #self.mod_label.pack(anchor="w", pady=(0, 15))
+        self.mod_label.pack(side="left", anchor="w")
+
+        # Kontener na ustawienie adresu (po prawej stronie paska)
+        adr_sel_frame = ctk.CTkFrame(mod_header, fg_color="transparent")
+        adr_sel_frame.pack(side="right", anchor="e")
+
+        address_label = ctk.CTkLabel(adr_sel_frame, text="Modbus Address (Slave ID):", font=ctk.CTkFont(size=12))
+        address_label.pack(side="left", padx=(0, 5))
+
+        # Pole tekstowe do wpisania adresu (sztywna szerokość width=50)
+        self.address_entry = ctk.CTkEntry(adr_sel_frame, width=50, justify="center")
+        self.address_entry.pack(side="left", padx=(0, 5))
+        self.address_entry.insert(0, str(self.module.adr)) # Wstawiamy aktualnie zapisany adres
+
+        # Przycisk zatwierdzający zmianę adresu
+        btn_adres_accept = ctk.CTkButton(
+            adr_sel_frame,
+            text="Save",
+            width=60,
+            height=28,
+            font=ctk.CTkFont(size=12),
+            command=self.new_address_save
+        )
+        btn_adres_accept.pack(side="left")
 
         #---------------------------------------------------------
         self.outputs_list = {}
@@ -326,6 +356,25 @@ class ModigModbusApp(ctk.CTk):
 
                 label_in = ctk.CTkLabel(i_item, text=f"Input {idx}", font=ctk.CTkFont(size=12, weight="bold"))
                 label_in.place(relx=0.5, rely=0.5, anchor="w", x=10)  # Przesunięcie tekstu obok diody
+
+    def new_address_save(self):
+        """Pobiera adres z pola Entry, waliduje go i zapisuje do konfiguracji."""
+        raw_text = self.address_entry.get()
+
+        try:
+            new_adr = int(raw_text)
+            if 1 <= new_adr <= 247:
+                self.module.adr = new_adr
+                self.sett_man.new_mod_val(self.module.active, "adr", new_adr)
+            else:
+                print("Błąd: Adres Modbus musi mieścić się w zakresie od 1 do 247.")
+                self.addres_entry.delete(0, "end")
+                self.addres_entry.insert(0, self.module.adr)
+
+        except ValueError:
+            print("Błąd: Wprowadzona wartość nie jest liczbą całkowitą!")
+            self.addres_entry.delete(0, "end")
+            self.addres_entry.insert(0, self.module.adr)
 
     def outputs_switch(self, output_index):
         """Wywoływane przy zmianie pozycji przełącznika."""

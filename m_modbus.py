@@ -37,6 +37,7 @@ class ModbusFunctions:
                     delay = 0
                     try:
                         if self.mcom.action == "wrb":
+                            self.bus.mm.address = self.mcom.adr
                             self.bus.mm.write_bit(self.mcom.reg, self.mcom.val)
                             #time.sleep(0.1)
                             self.main_ref.after(0, self.main_ref.outputs_switch_state, (self.mcom.reg, self.mcom.val))
@@ -52,12 +53,15 @@ class ModbusFunctions:
                             inputs = self.main_ref.module.inputs
 
                             if inputs > 0:
+                                if inputs < 9: inputs = 9
+                                self.bus.mm.address = self.main_ref.module.adr
                                 # Funkcja zwraca listę wartości, np. [0, 1, 0, 0]
                                 in_states = self.bus.mm.read_bits(
                                     registeraddress=1,
                                     number_of_bits=inputs,
                                     functioncode=2
                                 )
+
                                 #time.sleep(0.1)
                                 self.main_ref.after(0, self.main_ref.input_indicators, in_states)
                         except Exception as e:

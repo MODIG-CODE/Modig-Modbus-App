@@ -1,6 +1,6 @@
 {
     "theme": "Dark",
-    "def_mod": 1,
+    "def_mod": 3,
     "mod1": {
         "type": "MD20001",
         "adr": 1,
@@ -9,19 +9,19 @@
     },
     "mod2": {
         "type": "MD20002",
-        "adr": 2,
+        "adr": 1,
         "outputs": 16,
         "inputs": 0
     },
     "mod3": {
         "type": "MD20003",
-        "adr": 3,
+        "adr": 1,
         "outputs": 12,
         "inputs": 8
     },
     "mod4": {
         "type": "MD20004",
-        "adr": 4,
+        "adr": 1,
         "outputs": 8,
         "inputs": 12
     }
