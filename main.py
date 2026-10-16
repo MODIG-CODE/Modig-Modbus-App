@@ -89,6 +89,24 @@ class ModigModbusApp(ctk.CTk):
 
         self.protocol("WM_DELETE_WINDOW", self.when_close_app)
 
+        #-----------------------------------------------
+        #my_mm = self.app_bus.serial_get()
+        oryg_write =  self.app_bus.ser.write
+        oryg_read = self.app_bus.ser.read
+
+        def new_write(data):
+            self.frame_log(1, data)
+            return oryg_write(data)
+
+        def new_read(size=1):
+            data = oryg_read(size)
+            if data:
+                self.frame_log(0, data)
+            return data
+
+        self.app_bus.ser.write = new_write
+        self.app_bus.ser.read = new_read
+
         self.mfunc.start_functions(self.app_bus)
 
     def when_close_app(self):
@@ -198,23 +216,6 @@ class ModigModbusApp(ctk.CTk):
 
     def port_selected(self, wybrany_port):
         if self.app_bus.try_open(wybrany_port):
-            my_mm = self.app_bus.serial_get()
-            oryg_write = my_mm.serial.write
-            oryg_read = my_mm.serial.read
-
-            def new_write(data):
-                self.frame_log(1, data)
-                return oryg_write(data)
-
-            def new_read(size=1):
-                data = oryg_read(size)
-                if data:
-                    self.frame_log(0, data)
-                return data
-
-            my_mm.serial.write = new_write
-            my_mm.serial.read = new_read
-
             print(f"Port selected: {wybrany_port}, and ready")
             # Sukces: zmieniamy kolory menu na zielone (obsługuje od razu Light i Dark mode)
             # Format ["kolor_jasny", "kolor_ciemny"]

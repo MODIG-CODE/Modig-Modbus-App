@@ -53,7 +53,7 @@ class ModbusFunctions:
                             inputs = self.main_ref.module.inputs
 
                             if inputs > 0:
-                                if inputs < 9: inputs = 9
+                                if inputs < 16: inputs = 16
                                 self.bus.mm.address = self.main_ref.module.adr
                                 # Funkcja zwraca listę wartości, np. [0, 1, 0, 0]
                                 in_states = self.bus.mm.read_bits(
@@ -61,9 +61,9 @@ class ModbusFunctions:
                                     number_of_bits=inputs,
                                     functioncode=2
                                 )
-
+                                new_states = in_states[8:] + in_states[:8]
                                 #time.sleep(0.1)
-                                self.main_ref.after(0, self.main_ref.input_indicators, in_states)
+                                self.main_ref.after(0, self.main_ref.input_indicators, new_states)
                         except Exception as e:
                             print(f"[Thread Func Error]: {e}")
 
