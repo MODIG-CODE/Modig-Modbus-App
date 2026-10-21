@@ -45,6 +45,7 @@ class ModbusModule:
     active: int
     type: str
     adr: int
+    offset: int
     outputs: int
     inputs: int
 
@@ -249,10 +250,12 @@ class ModigModbusApp(ctk.CTk):
         self.module.active = mod_index
         self.module.type = self.sett_man.get_mod_type(self.module.active)
         self.module.adr = self.sett_man.get_mod_adr(self.module.active)
+        self.module.offset = self.sett_man.get_mod_off(self.module.active)
         self.module.outputs = self.sett_man.get_mod_outputs(self.module.active)
         self.module.inputs = self.sett_man.get_mod_inputs(self.module.active)
         print(f"Switch Mod: {self.module.active}")
         self.mod_panel_builder()
+        self.outputs_read()
 
     def mod_panel_builder(self):
         for widget in self.main_panel.winfo_children():
@@ -364,7 +367,7 @@ class ModigModbusApp(ctk.CTk):
 
         try:
             new_adr = int(raw_text)
-            if 1 <= new_adr <= 247:
+            if 1 <= new_adr <= 255:
                 self.module.adr = new_adr
                 self.sett_man.new_mod_val(self.module.active, "adr", new_adr)
             else:
@@ -384,17 +387,39 @@ class ModigModbusApp(ctk.CTk):
 
         #result = False
         if self.app_bus_status:
-            command = ModbusCommand(action="wrb", adr=self.module.adr, reg=output_index, val=switch_new_state)
+            if self.module.offset == 0: output_index -= 1
+            command = ModbusCommand(
+                action="wrb",
+                adr=self.module.adr,
+                reg=output_index,
+                val=switch_new_state
+            )
             self.mfunc.functions_command(command)
+
+    def outputs_read(self):
+        if self.app_bus_status:
+            command = ModbusCommand(
+                action="rdb",
+                adr=self.module.adr,
+                reg=self.module.offset,
+                val=16
+            )
+            self.mfunc.functions_command(command)
+
+    def outputs_all_switch_state(self, new_states):
+        for idx in range(1, self.module.outputs + 1):
+            self.outputs_switch_state((idx, new_states[idx-1]))
 
     def outputs_switch_state(self, index_state):
         switch = self.outputs_list[index_state[0]]
         frame = self.oframes_list[index_state[0]]
         if index_state[1] == 1:
             switch.configure(text="ON")
+            switch.select()
             frame.configure(fg_color=[DEF_OGRIDPANELS_ACT_FG_L, DEF_OGRIDPANELS_ACT_FG_D])
         else:
             switch.configure(text="OFF")
+            switch.deselect()
             frame.configure(fg_color=[DEF_OGRIDPANELS_FG_L, DEF_OGRIDPANELS_FG_D])
 
     def input_indicators(self, read_states):

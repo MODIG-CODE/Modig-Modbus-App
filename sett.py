@@ -7,24 +7,28 @@ DEF_SETT = {
     "mod1":{
         "type": "MD20001",
         "adr": 1,
+        "offset": 1,
         "outputs": 12,
         "inputs": 0
     },
     "mod2": {
         "type": "MD20002",
-        "adr": 2,
+        "adr": 1,
+        "offset": 1,
         "outputs": 16,
         "inputs": 0
     },
     "mod3": {
         "type": "MD20003",
-        "adr": 3,
+        "adr": 1,
+        "offset": 1,
         "outputs": 12,
         "inputs": 8
     },
     "mod4": {
         "type": "MD20004",
-        "adr": 4,
+        "adr": 1,
+        "offset": 1,
         "outputs": 8,
         "inputs": 12
     }
@@ -93,7 +97,11 @@ class SettingsManager:
 
     def get_mod_adr(self, mod_num):
         mod_conf = self.sett_conf.get(f"mod{mod_num}", {"adr": 1})
-        return mod_conf.get("adr", 4)
+        return mod_conf.get("adr", 1)
+
+    def get_mod_off(self, mod_num):
+        mod_conf = self.sett_conf.get(f"mod{mod_num}", {"offset": 1})
+        return mod_conf.get("offset", 1)
 
     def get_mod_outputs(self, mod_num):
         mod_conf = self.sett_conf.get(f"mod{mod_num}", {"outputs": 4})

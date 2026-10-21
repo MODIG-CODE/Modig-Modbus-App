@@ -35,12 +35,29 @@ class ModbusFunctions:
 
                 if self.command_event.is_set():
                     delay = 0
+                    self.bus.mm.address = self.mcom.adr
+
                     try:
                         if self.mcom.action == "wrb":
-                            self.bus.mm.address = self.mcom.adr
-                            self.bus.mm.write_bit(self.mcom.reg, self.mcom.val)
+                            self.bus.mm.write_bit(
+                                registeraddress=self.mcom.reg,
+                                value=self.mcom.val,
+                                functioncode=5)
                             #time.sleep(0.1)
                             self.main_ref.after(0, self.main_ref.outputs_switch_state, (self.mcom.reg, self.mcom.val))
+
+                        elif self.mcom.action == "rdb":
+                            in_states = self.bus.mm.read_bits(
+                                registeraddress=self.mcom.reg,
+                                number_of_bits=self.mcom.val,
+                                functioncode=1
+                            )
+                            #time.sleep(0.1)
+                            for i in range(16 - len(in_states)):
+                                in_states.append(0)
+
+                            new_states = in_states[8:] + in_states[:8]
+                            self.main_ref.after(0, self.main_ref.outputs_all_switch_state, new_states)
 
                         self.command_event.clear()
                     except Exception as e:
@@ -57,7 +74,7 @@ class ModbusFunctions:
                                 self.bus.mm.address = self.main_ref.module.adr
                                 # Funkcja zwraca listę wartości, np. [0, 1, 0, 0]
                                 in_states = self.bus.mm.read_bits(
-                                    registeraddress=1,
+                                    registeraddress=self.main_ref.module.offset,
                                     number_of_bits=inputs,
                                     functioncode=2
                                 )
