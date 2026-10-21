@@ -1,19 +1,19 @@
 import serial
 import serial.tools.list_ports
-import minimalmodbus
-import time
+#import minimalmodbus
+#import time
 
 class SerialManager:
 
     p_list = {}
 
-    ser = serial.Serial(
+    sp = serial.Serial(
         port=None,
         baudrate=19200,     # Prędkość transmisji (częsta dla Modbus)
         bytesize=serial.EIGHTBITS,  # 8 bitów danych
         parity=serial.PARITY_NONE,   # Brak parzystości
         stopbits=serial.STOPBITS_ONE, # 1 bit stopu
-        timeout=1          # Maksymalny czas oczekiwania na odpowiedź (w sekundach)
+        timeout=0.5          # Maksymalny czas oczekiwania na odpowiedź (w sekundach)
     )
 
     #mm = minimalmodbus.Instrument(ser, 1)
@@ -31,27 +31,26 @@ class SerialManager:
 
     def try_open(self, port_name):
         # first - close actual, if need
-        if self.ser.port is not None:
-            if self.ser.isOpen():
+        if self.sp.port is not None:
+            if self.sp.isOpen():
                 try:
-                    self.ser.close()
+                    self.sp.close()
                 except Exception as e:
                     return False
 
         # second - set new port
         try:
-            self.ser.setPort(port_name)
+            self.sp.setPort(port_name)
         except Exception as e:
             return False
 
         # then - try open new
-        if self.ser.isOpen():
+        if self.sp.isOpen():
             #print(f"Port {port_name} is not available")
             return False
         else:
             try:
-                self.ser.open()
-                self.mm = minimalmodbus.Instrument(self.ser, 1)
+                self.sp.open()
                 #print(f"Port {port_name} is ready")
                 return True
             except Exception as e:
@@ -59,26 +58,15 @@ class SerialManager:
                 #print(f"Port {port_name} is not available")
         return False
 
-    def serial_get(self):
-        return self.mm
-
     def ser_close(self):
-        if self.ser.port is not None:
-            if self.ser.isOpen():
+        if self.sp.port is not None:
+            if self.sp.isOpen():
                 try:
-                    self.ser.close()
-                    #print(f"Port {self.ser.port} is closed now")
+                    self.sp.close()
+                    #print(f"Port {self.sp.port} is closed now")
                     return True
                 except Exception as e:
                     pass
-                    #print(f"Port {self.ser.port} close fail")
+                    #print(f"Port {self.sp.port} close fail")
         return False
-
-    def mm_wr_bit(self, adr, val):
-        if self.ser.isOpen():
-            try:
-                self.mm.write_bit(adr, val)
-                return True
-            except Exception as e:
-                print(f"[Mbus Error]: {e}")
-        return False
+    

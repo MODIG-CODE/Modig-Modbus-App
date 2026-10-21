@@ -56,17 +56,9 @@ class ModigModbusApp(ctk.CTk):
         # Konfiguracja ustawień
         self.sett_man = SettingsManager()
         self.sett_man.init_file()
-        self.module = ModbusModule
-        self.module.active = self.sett_man.get_act_mod()
-
         self.app_bus_status = False
         self.app_bus = SerialManager()
-        self.mfunc = ModbusFunctions(self)
-
-        self.outputs_list = {}
-        self.oframes_list = {}
-        self.inputs_list = {}
-        self.iframes_list = {}
+        self.mb_func = ModbusFunctions(self)
 
         ctk.set_appearance_mode(self.sett_man.get_theme())
         ctk.set_default_color_theme("blue")
@@ -81,20 +73,26 @@ class ModigModbusApp(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)  # Górna część (panele) zajmuje większość miejsca
         self.grid_rowconfigure(1, weight=0)  # Dolna część (diagnostyka) zajmuje mniej miejsca
 
+        self.outputs_list = {}
+        self.oframes_list = {}
+        self.inputs_list = {}
+        self.iframes_list = {}
+
+        self.module = ModbusModule
+        self.module.active = self.sett_man.get_act_mod()
+        self.module_update()
+
         # --- TWORZENIE ELEMENTÓW INTERFEJSU ---
         self.left_panel_init()
         self.main_panel_init()
-        self.module_switch(self.module.active)
         self.mod_panel_builder()
         self.bus_frames_panel_init()
 
         self.protocol("WM_DELETE_WINDOW", self.when_close_app)
 
         #-----------------------------------------------
-        #my_mm = self.app_bus.serial_get()
-        oryg_write =  self.app_bus.ser.write
-        oryg_read = self.app_bus.ser.read
-
+        oryg_write =  self.app_bus.sp.write
+        oryg_read = self.app_bus.sp.read
         def new_write(data):
             self.frame_log(1, data)
             return oryg_write(data)
@@ -104,17 +102,14 @@ class ModigModbusApp(ctk.CTk):
             if data:
                 self.frame_log(0, data)
             return data
-
-        self.app_bus.ser.write = new_write
-        self.app_bus.ser.read = new_read
-
-        self.mfunc.start_functions(self.app_bus)
+        self.app_bus.sp.write = new_write
+        self.app_bus.sp.read = new_read
 
     def when_close_app(self):
         if self.module.active is not self.sett_man.get_act_mod():
             self.sett_man.new_val("def_mod", self.module.active)
         print("Zamykanie aplikacji...")
-        self.mfunc.functions_close()
+        self.mb_func.functions_close()
         self.app_bus.ser_close()
         self.destroy()
 
@@ -216,19 +211,22 @@ class ModigModbusApp(ctk.CTk):
         print(f"Serial ports refresh")
 
     def port_selected(self, wybrany_port):
+        self.app_bus_status = False
         if self.app_bus.try_open(wybrany_port):
-            print(f"Port selected: {wybrany_port}, and ready")
-            # Sukces: zmieniamy kolory menu na zielone (obsługuje od razu Light i Dark mode)
-            # Format ["kolor_jasny", "kolor_ciemny"]
-            self.com_optionmenu.configure(
-                fg_color=["#4CC3B0", "#3CB3A0"],      # Zielony panel
-                button_color=["#4CC3B0", "#3CB3A0"],
-                state="disabled"
-            )
-            self.btn_refresh.configure(text="CLOSE")
-            self.app_bus_status = True
-        else:
-            self.app_bus_status = False
+            if self.mb_func.start_functions(self.app_bus.sp):
+                print(f"Port selected: {wybrany_port}, and ready")
+                # Sukces: zmieniamy kolory menu na zielone (obsługuje od razu Light i Dark mode)
+                # Format ["kolor_jasny", "kolor_ciemny"]
+                self.com_optionmenu.configure(
+                    fg_color=["#4CC3B0", "#3CB3A0"],      # Zielony panel
+                    button_color=["#4CC3B0", "#3CB3A0"],
+                    state="disabled"
+                )
+                self.btn_refresh.configure(text="CLOSE")
+                self.app_bus_status = True
+                self.outputs_read()
+
+        if not self.app_bus_status:
             print(f"Port selected: {wybrany_port}, and FAIL")
             self.com_optionmenu.configure(
                 fg_color=["#ED3229", "#DD2219"],      # Czerwony panel
@@ -248,14 +246,17 @@ class ModigModbusApp(ctk.CTk):
 
     def module_switch(self, mod_index):
         self.module.active = mod_index
+        self.module_update()
+        print(f"Switch Mod: {self.module.active}")
+        self.mod_panel_builder()
+        self.outputs_read()
+
+    def module_update(self):
         self.module.type = self.sett_man.get_mod_type(self.module.active)
         self.module.adr = self.sett_man.get_mod_adr(self.module.active)
         self.module.offset = self.sett_man.get_mod_off(self.module.active)
         self.module.outputs = self.sett_man.get_mod_outputs(self.module.active)
         self.module.inputs = self.sett_man.get_mod_inputs(self.module.active)
-        print(f"Switch Mod: {self.module.active}")
-        self.mod_panel_builder()
-        self.outputs_read()
 
     def mod_panel_builder(self):
         for widget in self.main_panel.winfo_children():
@@ -394,7 +395,7 @@ class ModigModbusApp(ctk.CTk):
                 reg=output_index,
                 val=switch_new_state
             )
-            self.mfunc.functions_command(command)
+            self.mb_func.functions_command(command)
 
     def outputs_read(self):
         if self.app_bus_status:
@@ -404,7 +405,7 @@ class ModigModbusApp(ctk.CTk):
                 reg=self.module.offset,
                 val=16
             )
-            self.mfunc.functions_command(command)
+            self.mb_func.functions_command(command)
 
     def outputs_all_switch_state(self, new_states):
         for idx in range(1, self.module.outputs + 1):

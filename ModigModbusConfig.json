@@ -24,7 +24,7 @@
     },
     "mod4": {
         "type": "MD20004",
-        "adr": 1,
+        "adr": 2,
         "offset": 1,
         "outputs": 8,
         "inputs": 12

@@ -1,6 +1,7 @@
 import threading
 import time
 from dataclasses import dataclass
+import minimalmodbus
 
 @dataclass
 class ModbusCommand:
@@ -13,18 +14,26 @@ class ModbusFunctions:
     def __init__(self, app_ref):
         self.command_event = threading.Event()
         self.functions_event = threading.Event()
-        self.functions_thread = None  # Referencja do wątku
+        self.functions_thread = threading.Thread(target=self.functions_loop, daemon=True)
         self.main_ref = app_ref
         self.mcom = ModbusCommand
 
-    def start_functions(self, bus_ref):
+    def start_functions(self, serial_port):
         """Uruchamia wątek odpytywania, jeśli nie jest jeszcze aktywny."""
-        self.bus = bus_ref
         if self.functions_thread is None or not self.functions_thread.is_alive():
-            self.functions_event.set()
             self.functions_thread = threading.Thread(target=self.functions_loop, daemon=True)
+
+        try:
+            self.mm = minimalmodbus.Instrument(serial_port, 1)
+            self.functions_event.set()
             self.functions_thread.start()
             print("Thread RUN")
+            return True
+
+        except Exception as e:
+            print(f"[Modbus Functions Error]: {e}")
+            #self.functions_event.clear()
+            self.functions_close()
 
     def functions_loop(self):
         """Pętla wykonująca się w tle (w osobnym wątku)."""
@@ -35,11 +44,11 @@ class ModbusFunctions:
 
                 if self.command_event.is_set():
                     delay = 0
-                    self.bus.mm.address = self.mcom.adr
+                    self.mm.address = self.mcom.adr
 
                     try:
                         if self.mcom.action == "wrb":
-                            self.bus.mm.write_bit(
+                            self.mm.write_bit(
                                 registeraddress=self.mcom.reg,
                                 value=self.mcom.val,
                                 functioncode=5)
@@ -47,7 +56,7 @@ class ModbusFunctions:
                             self.main_ref.after(0, self.main_ref.outputs_switch_state, (self.mcom.reg, self.mcom.val))
 
                         elif self.mcom.action == "rdb":
-                            in_states = self.bus.mm.read_bits(
+                            in_states = self.mm.read_bits(
                                 registeraddress=self.mcom.reg,
                                 number_of_bits=self.mcom.val,
                                 functioncode=1
@@ -71,9 +80,9 @@ class ModbusFunctions:
 
                             if inputs > 0:
                                 if inputs < 16: inputs = 16
-                                self.bus.mm.address = self.main_ref.module.adr
+                                self.mm.address = self.main_ref.module.adr
                                 # Funkcja zwraca listę wartości, np. [0, 1, 0, 0]
-                                in_states = self.bus.mm.read_bits(
+                                in_states = self.mm.read_bits(
                                     registeraddress=self.main_ref.module.offset,
                                     number_of_bits=inputs,
                                     functioncode=2
@@ -91,7 +100,10 @@ class ModbusFunctions:
             self.functions_thread.join(timeout=1.0) # Czekamy maksymalnie sekundę na zamknięcie wątku
 
     def functions_command(self, com):
-        while self.command_event.is_set():
-            pass
+        i = 0
+        while self.command_event.is_set() and i < 20:
+            time.sleep(0.05)
+            i += 1
+
         self.mcom = com
         self.command_event.set()
