@@ -3,7 +3,7 @@
     "def_mod": 4,
     "mod1": {
         "type": "MD20001",
-        "adr": 1,
+        "adr": 4,
         "offset": 1,
         "outputs": 12,
         "inputs": 0
@@ -24,7 +24,7 @@
     },
     "mod4": {
         "type": "MD20004",
-        "adr": 4,
+        "adr": 1,
         "offset": 1,
         "outputs": 8,
         "inputs": 12
