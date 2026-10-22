@@ -10,7 +10,7 @@ import customtkinter as ctk
 ctk.set_appearance_mode("System")  # Tryb: "System", "Dark" lub "Light"
 ctk.set_default_color_theme("blue")  # Motyw kolorystyczny: "blue", "green", "dark-blue"
 
-DEF_VERSION = "1.3 beta"
+DEF_VERSION = "1.4 beta"
 
 DEF_LEFT_PANEL_L = "gray70"
 DEF_LEFT_PANEL_D = "gray30"
@@ -153,22 +153,24 @@ class ModigModbusApp(ctk.CTk):
         self.logo_label = ctk.CTkLabel(self.left_panel, text="MODULES", font=ctk.CTkFont(size=16, weight="bold"))
         self.logo_label.grid(row=3, column=0, padx=20, pady=(10, 5), sticky="w")
 
-        # Przyciski wyboru kart (jako przykłady)
+        # Przyciski wyboru kart
         self.modules_list = {}
         for idx in range(1, 5):
-            # Przyciski wyboru kart (jako przykłady)
+            # Przyciski wyboru kart
             """name = (f"{self.sett_man.get_mod_type(idx)} "
                     f"(A:{self.sett_man.get_mod_adr(idx)}"
                     f" O:{self.sett_man.get_mod_outputs(idx)} "
-                    f" I:{self.sett_man.get_mod_inputs(idx)})")"""
-            name = f"{self.sett_man.get_mod_type(idx)} (Adr:{self.sett_man.get_mod_adr(idx)})"
-            g_item = ctk.CTkButton(self.left_panel, text=name,
+                    f" I:{self.sett_man.get_mod_inputs(idx)})")
+            name = f"{self.sett_man.get_mod_type(idx)} (Adr:{self.sett_man.get_mod_adr(idx)})"""
+            g_item = ctk.CTkButton(self.left_panel, text="",
                 fg_color=(DEF_MODULE_SEL_L, DEF_MODULE_SEL_D),
                 text_color=("gray10", "gray90"),
                 hover_color=(DEF_MODULE_SEL_D, DEF_MODULE_SEL_L), anchor="w",
                 command=lambda i=idx: self.module_switch(i))
             g_item.grid(row=(idx + 3), column=0, padx=20, pady=20, sticky="ew")
             self.modules_list[idx] = g_item
+            self.modules_names(idx)
+            self.modules_names(idx)
 
         #---------------------------------------------------
         # Opcje na dole panelu (Wybór motywu)
@@ -186,6 +188,15 @@ class ModigModbusApp(ctk.CTk):
         self.theme_optionmenu.set("System")
         self.theme_optionmenu.set(self.sett_man.get_theme())
         self.scan_ports()
+
+    def modules_names(self, module_index):
+        # Przyciski wyboru kart
+        """name = (f"{self.sett_man.get_mod_type(idx)} "
+        f"(A:{self.sett_man.get_mod_adr(idx)}"
+        f" O:{self.sett_man.get_mod_outputs(idx)} "
+        f" I:{self.sett_man.get_mod_inputs(idx)})")"""
+        name = f"{self.sett_man.get_mod_type(module_index)} (Adr:{self.sett_man.get_mod_adr(module_index)})"
+        self.modules_list[module_index].configure(text=name)
 
     def scan_ports(self):
         if self.app_bus_status:
@@ -369,10 +380,12 @@ class ModigModbusApp(ctk.CTk):
         try:
             new_adr = int(raw_text)
             if 1 <= new_adr <= 255:
-                self.module.adr = new_adr
                 self.sett_man.new_mod_val(self.module.active, "adr", new_adr)
+                self.modules_names(self.module.active)
+                self.module_update()
+                self.outputs_read()
             else:
-                print("Błąd: Adres Modbus musi mieścić się w zakresie od 1 do 247.")
+                print("Błąd: Adres Modbus musi mieścić się w zakresie od 1 do 255.")
                 self.addres_entry.delete(0, "end")
                 self.addres_entry.insert(0, self.module.adr)
 
@@ -380,6 +393,7 @@ class ModigModbusApp(ctk.CTk):
             print("Błąd: Wprowadzona wartość nie jest liczbą całkowitą!")
             self.addres_entry.delete(0, "end")
             self.addres_entry.insert(0, self.module.adr)
+
 
     def outputs_switch(self, output_index):
         """Wywoływane przy zmianie pozycji przełącznika."""
