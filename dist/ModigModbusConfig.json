@@ -1,0 +1,32 @@
+{
+    "theme": "Dark",
+    "def_mod": 1,
+    "mod1": {
+        "type": "MD20001",
+        "adr": 1,
+        "offset": 1,
+        "outputs": 12,
+        "inputs": 0
+    },
+    "mod2": {
+        "type": "MD20002",
+        "adr": 1,
+        "offset": 1,
+        "outputs": 16,
+        "inputs": 0
+    },
+    "mod3": {
+        "type": "MD20003",
+        "adr": 1,
+        "offset": 1,
+        "outputs": 12,
+        "inputs": 8
+    },
+    "mod4": {
+        "type": "MD20004",
+        "adr": 1,
+        "offset": 1,
+        "outputs": 8,
+        "inputs": 12
+    }
+}

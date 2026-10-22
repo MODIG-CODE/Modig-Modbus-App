@@ -121,7 +121,7 @@ class ModigModbusApp(ctk.CTk):
         #self.left_panel.grid_rowconfigure(3, weight=1)  # Popycha dolne elementy w dół
 
         # --- SEKCJA PORTU COM ---
-        self.com_label = ctk.CTkLabel(self.left_panel, text="SERIAL PORT", font=ctk.CTkFont(size=16, weight="bold"))
+        self.com_label = ctk.CTkLabel(self.left_panel, text="RS485 CONVERTER", font=ctk.CTkFont(size=16, weight="bold"))
         self.com_label.grid(row=0, column=0, padx=20, pady=(5, 5), sticky="w")
 
         # Tworzymy rozwijane menu (OptionMenu) do wyboru portu COM
