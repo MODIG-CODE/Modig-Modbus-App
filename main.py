@@ -1,16 +1,19 @@
 import threading
 import time
+import os
 from dataclasses import dataclass
 from sett import SettingsManager
 from serial_bus import SerialManager
 from m_modbus import ModbusFunctions
 from m_modbus import ModbusCommand
 import customtkinter as ctk
+from PIL import Image
+
 
 ctk.set_appearance_mode("System")  # Tryb: "System", "Dark" lub "Light"
 ctk.set_default_color_theme("blue")  # Motyw kolorystyczny: "blue", "green", "dark-blue"
 
-DEF_VERSION = "1.4 beta"
+DEF_VERSION = "1.5 beta"
 
 DEF_LEFT_PANEL_L = "gray70"
 DEF_LEFT_PANEL_D = "gray30"
@@ -85,7 +88,7 @@ class ModigModbusApp(ctk.CTk):
         # --- TWORZENIE ELEMENTÓW INTERFEJSU ---
         self.left_panel_init()
         self.main_panel_init()
-        self.mod_panel_builder()
+        self.main_panel_builder()
         self.bus_frames_panel_init()
 
         self.protocol("WM_DELETE_WINDOW", self.when_close_app)
@@ -259,7 +262,7 @@ class ModigModbusApp(ctk.CTk):
         self.module.active = mod_index
         self.module_update()
         print(f"Switch Mod: {self.module.active}")
-        self.mod_panel_builder()
+        self.main_panel_builder()
         self.outputs_read()
 
     def module_update(self):
@@ -269,44 +272,50 @@ class ModigModbusApp(ctk.CTk):
         self.module.outputs = self.sett_man.get_mod_outputs(self.module.active)
         self.module.inputs = self.sett_man.get_mod_inputs(self.module.active)
 
-    def mod_panel_builder(self):
+    def main_panel_builder(self):
         for widget in self.main_panel.winfo_children():
             widget.destroy()
 
         #-----------------------------------------
         mod_header = ctk.CTkFrame(self.main_panel, fg_color="transparent")
-        mod_header.pack(fill="x", pady=(0, 15))
+        mod_header.pack(fill="x", padx=(10, 10))
+        mod_header.grid_columnconfigure((0,1,2,3), weight=1)
+        try:
+            logo_image = ctk.CTkImage(
+                dark_image=Image.open(os.path.join("logo_d.png")).convert("RGBA"),
+                light_image=Image.open(os.path.join("logo_l.png")).convert("RGBA"),
+                size=(200, 50))
+        except:
+            pass
+        logo_label = ctk.CTkLabel(mod_header, fg_color="transparent", image=logo_image, text="")
+        logo_label.grid(column=0, row=0, columnspan=2, rowspan=2, padx=0, pady=(0,5), sticky="w")
 
         self.mod_label = ctk.CTkLabel(
             mod_header,
             text=f"{self.module.type} (Out: {self.module.outputs}, In: {self.module.inputs})",
             font=ctk.CTkFont(size=20, weight="bold")
         )
-        #self.mod_label.pack(anchor="w", pady=(0, 15))
-        self.mod_label.pack(side="left", anchor="w")
+        self.mod_label.grid(column=2, row=0, columnspan=2, padx=0, pady=(0,10), sticky="e")
 
-        # Kontener na ustawienie adresu (po prawej stronie paska)
-        adr_sel_frame = ctk.CTkFrame(mod_header, fg_color="transparent")
-        adr_sel_frame.pack(side="right", anchor="e")
+        adr_frame = ctk.CTkFrame(mod_header, fg_color="transparent")
+        adr_frame.grid(column=3, row=1, columnspan=2, sticky="ew")
 
-        address_label = ctk.CTkLabel(adr_sel_frame, text="Modbus Address (Slave ID):", font=ctk.CTkFont(size=12))
-        address_label.pack(side="left", padx=(0, 5))
-
-        # Pole tekstowe do wpisania adresu (sztywna szerokość width=50)
-        self.address_entry = ctk.CTkEntry(adr_sel_frame, width=50, justify="center")
-        self.address_entry.pack(side="left", padx=(0, 5))
-        self.address_entry.insert(0, str(self.module.adr)) # Wstawiamy aktualnie zapisany adres
-
-        # Przycisk zatwierdzający zmianę adresu
         btn_adres_accept = ctk.CTkButton(
-            adr_sel_frame,
+            adr_frame,
             text="Save",
             width=60,
             height=28,
             font=ctk.CTkFont(size=12),
             command=self.new_address_save
         )
-        btn_adres_accept.pack(side="left")
+        btn_adres_accept.pack(fill="x", side="right", padx=(5, 5))
+
+        self.address_entry = ctk.CTkEntry(adr_frame, width=50, justify="center")
+        self.address_entry.pack(fill="x", side="right", padx=(5, 5))
+        self.address_entry.insert(0, str(self.module.adr)) # Wstawiamy aktualnie zapisany adres
+
+        address_label = ctk.CTkLabel(adr_frame, text="Modbus Address (Slave ID):", font=ctk.CTkFont(size=12))
+        address_label.pack(fill="x", side="right", padx=(5, 5))
 
         #---------------------------------------------------------
         self.outputs_list = {}
