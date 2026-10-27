@@ -1,6 +1,7 @@
 import threading
 import time
 import os
+import sys
 from dataclasses import dataclass
 from sett import SettingsManager
 from serial_bus import SerialManager
@@ -272,6 +273,15 @@ class ModigModbusApp(ctk.CTk):
         self.module.outputs = self.sett_man.get_mod_outputs(self.module.active)
         self.module.inputs = self.sett_man.get_mod_inputs(self.module.active)
 
+    def resource_path(self, relative_path):
+        try:
+            base_path = sys._MEIPASS
+            print("path = meipass")
+        except Exception:
+            base_path = os.path.abspath(".")
+            print("path = abspath")
+        return os.path.join(base_path, relative_path)
+
     def main_panel_builder(self):
         for widget in self.main_panel.winfo_children():
             widget.destroy()
@@ -280,15 +290,22 @@ class ModigModbusApp(ctk.CTk):
         mod_header = ctk.CTkFrame(self.main_panel, fg_color="transparent")
         mod_header.pack(fill="x", padx=(10, 10))
         mod_header.grid_columnconfigure((0,1,2,3), weight=1)
+
         try:
+            image_d_path = self.resource_path("logo_d.png")
+            image_l_path = self.resource_path("logo_l.png")
+            print(f"image path = {image_d_path}")
+            img_light = Image.open(image_l_path).convert("RGBA")
+            img_dark = Image.open(image_d_path).convert("RGBA")
             logo_image = ctk.CTkImage(
-                dark_image=Image.open(os.path.join("logo_d.png")).convert("RGBA"),
-                light_image=Image.open(os.path.join("logo_l.png")).convert("RGBA"),
+                dark_image=img_dark,
+                light_image=img_light,
                 size=(200, 50))
+            logo_label = ctk.CTkLabel(mod_header, fg_color="transparent", image=logo_image, text="")
         except:
-            pass
-        logo_label = ctk.CTkLabel(mod_header, fg_color="transparent", image=logo_image, text="")
-        logo_label.grid(column=0, row=0, columnspan=2, rowspan=2, padx=0, pady=(0,5), sticky="w")
+            logo_label = ctk.CTkLabel(mod_header, text="LOGO")
+        logo_label.grid(column=0, row=0, columnspan=2, rowspan=2, padx=0, pady=(0, 5), sticky="w")
+
 
         self.mod_label = ctk.CTkLabel(
             mod_header,
